@@ -1,4 +1,4 @@
-## Project Roadmap: November 22 - December 5
+## Project Roadmap
 
 ### November 22 - 29: Core Development Phase
 #### **November 22 - 23: Data Preparation**
