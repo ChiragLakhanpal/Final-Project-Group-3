@@ -2,12 +2,13 @@ from enum import Enum
 import os
 from typing import Callable, Mapping, Sequence
 
-import cv2 as opencv
+import cv2
 import torch
 from torch.utils import data
 
 DATA_DIR = os.path.join("..", "Data")
 
+# image config
 CHANNELS = 3
 IMAGE_SIZE = 224
 
@@ -17,9 +18,9 @@ class DatasetType(Enum):
 
 
 class CustomDataset(data.Dataset):
-    def __init__(self, image_ids: list[str], dataset: Mapping[str, Mapping], dataset_type: DatasetType, transforms: Sequence[Callable] | None=None):
+    def __init__(self, image_ids: list[int], annotations_map: Mapping[int, Mapping], dataset_type: DatasetType, transforms: Sequence[Callable] | None=None):
         self.image_ids = image_ids
-        self.dataset = dataset
+        self.annotations_map = annotations_map
         self.dataset_type = dataset_type
         self.transforms = transforms
     
@@ -27,13 +28,14 @@ class CustomDataset(data.Dataset):
         return len(self.image_ids)
     
     def __getitem__(self, index):
-        image_filename = self.image_ids[index]
-        filepath = os.path.join(DATA_DIR, self.dataset_type, "images", image_filename)
-        data = self.dataset.get(image_filename, None)
+        image_id = self.image_ids[index]
+        data = self.annotations_map.get(image_id, None)
+        filepath = os.path.join(DATA_DIR, self.dataset_type, "images", data["file_name"])
 
         # load labels
+
         # load image
-        img = opencv.imread(filepath)
+        img = cv2.imread(filepath)
 
         if self.transforms:
             img = self.transforms(img)
@@ -41,4 +43,4 @@ class CustomDataset(data.Dataset):
         x = torch.FloatTensor(img)
         x = torch.reshape(x, (CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
 
-        return x
+        return x, data
