@@ -14,14 +14,14 @@ from detectron2.data.datasets import register_coco_instances
 from detectron2.data import DatasetCatalog
 import json
 import re
-
-if os.path.isfile('class_to_category.json') and os.path.isfile("data/train/annotations.json"):
-    with open('class_to_category.json') as f:
-        class_to_category = json.load(f)
-    with open("data/train/annotations.json") as f:
-        annotations = json.load(f)
-else:
-    class_to_category = {}    
+import pandas as pd
+import seaborn as sns
+import numpy as np
+import plotly.express as px
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import random
 
 cfg = get_cfg()
 config_path = model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
@@ -32,6 +32,44 @@ cfg.MODEL.ROI_HEADS.NUM_CLASSES = 498
 predictor = DefaultPredictor(cfg)
 
 metadata = MetadataCatalog.get("training_dataset")
+
+def plotly_images_with_segmentation(image_ids, annotations_data, root_dir, rows=2, cols=6):
+    category_id_to_name = {category['id']: category['name_readable'] for category in annotations_data['categories']}
+    fig = make_subplots(rows=rows, cols=cols)
+
+    for i, image_id in enumerate(image_ids, start=1):
+        img_path = os.path.join(root_dir, f"{image_id}.jpg")
+        image = cv2.imread(img_path)
+        if image is None:
+            continue
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        annotations = [ann for ann in annotations_data['annotations'] if ann['image_id'] == int(image_id)]
+        shapes = []
+        category_names = set()
+        for ann in annotations:
+            category_name = category_id_to_name.get(ann['category_id'], 'Unknown')
+            category_names.add(category_name)
+            for segmentation in ann['segmentation']:
+                points = [(segmentation[i], segmentation[i + 1]) for i in range(0, len(segmentation), 2)]
+                shapes.append({
+                    'type': 'path',
+                    'path': ' M ' + ' L '.join([f'{x} {y}' for x, y in points]) + ' Z',
+                    'line': {
+                        'color': 'blue',
+                        'width': 3,
+                    },
+                })
+
+        row, col = divmod(i-1, cols)
+        fig.add_trace(go.Image(z=image), row=row+1, col=col+1)
+        for shape in shapes:
+            fig.add_shape(shape, row=row+1, col=col+1)
+
+        fig.layout.annotations[i-1].update(text=f"Image {image_id} ({', '.join(category_names)})")
+
+    fig.update_layout(height=rows * 400, width=cols * 400, showlegend=False)
+    return fig
   
 def get_calorie_info(food_item):
     API_URL = f'https://api.api-ninjas.com/v1/nutrition?query={food_item}'
@@ -56,7 +94,7 @@ def format_names(name):
     name = ' '.join(name.split()[::-1])  
     return name
 
-def predict_and_visualize(image_path, predictor, metadata):
+def predict_and_visualize(image_path, predictor, metadata,class_to_category, annotations):
     if not os.path.isfile(image_path):
         print(f"File not found: {image_path}")
         return []
@@ -96,16 +134,31 @@ def save_uploaded_file(uploaded_file):
 
 def main():
     inject_custom_css()
-
-    tab1, tab2, tab3 = st.tabs(["Demo", "Presentation", "Connect with Us"])
+    
+    if os.path.isfile('class_to_category.json') and os.path.isfile("data/train/annotations.json"):
+        with open('class_to_category.json') as f:
+            class_to_category = json.load(f)
+        with open("data/train/annotations.json") as f:
+            annotations_data = json.load(f)
+    else:
+        class_to_category = {}
+        annotations_data = {"images": [], "annotations": [], "categories": []}
+            
+    if os.path.isfile('class_to_category.json') and os.path.isfile("data/train/annotations.json"):
+        with open('class_to_category.json') as f:
+            class_to_category = json.load(f)
+        with open("data/train/annotations.json") as f:
+            annotations = json.load(f)
+    else:
+        class_to_category = {}    
+        
+    tab1, tab2, tab3, tab4 = st.tabs(["Demo", "Presentation", "Explanatory Data Analysis", "Connect with Us"])
 
 
     with tab1:
         st.title("Food Item Detector and Calorie Estimator")
-
         st.write("## Description")
         st.write("This app detects food items in an image and provides an estimated calorie count.")
-
         st.write("## Steps")
         st.write("1. Upload an image of the food.")
         st.write("2. Choose a detection model.")
@@ -124,7 +177,7 @@ def main():
                 if model_choice == "YOLO":
                     detected_items = yolo_predict(image_path)
                 elif model_choice == "Detectron":
-                    detected_items = predict_and_visualize(image_path, predictor, metadata)
+                    detected_items = predict_and_visualize(image_path, predictor, metadata, class_to_category, annotations)
                 elif model_choice == "Custom":
                     detected_items = custom_predict(image_path)
 
@@ -152,7 +205,74 @@ def main():
     with tab2:
         st.write("## Presentation")
 
+
     with tab3:
+        st.write("## Explanatory Data Analysis")
+        st.write("### Dataset Glimpse")
+
+        categories_df = pd.DataFrame(annotations_data['categories'])
+        images_df = pd.DataFrame(annotations_data['images'])
+        annotations_df = pd.DataFrame(annotations_data['annotations'])
+
+        category_id_to_name = categories_df.set_index('id')['name_readable'].to_dict()
+        annotations_df['category_name'] = annotations_df['category_id'].apply(lambda x: category_id_to_name.get(x, ''))
+        annotations_df['category_name'] = annotations_df['category_name'].apply(lambda x: x.replace('_', ' '))
+        annotations_df['category_name'] = annotations_df['category_name'].apply(lambda x: x.capitalize())
+
+        # Display first few rows from each DataFrame
+        st.write("#### Categories")
+        st.dataframe(categories_df.head())
+
+        st.write("#### Images")
+        st.dataframe(images_df.head())
+
+        st.write("#### Annotations")
+        st.dataframe(annotations_df.head())
+
+        # st.write("### Sample Images with Annotations")
+
+        # image_ids = random.sample(list(images_df['id']), 12)
+        
+        # fig = plotly_images_with_segmentation(image_ids, annotations_data, root_dir, rows=2, cols=6)
+        # st.plotly_chart(fig, use_container_width=True)
+
+        st.write("### Category Distribution")
+        top_n = st.selectbox("Select number of top categories to display:", [10, 20, 50, 100, 'All'])
+
+        category_counts = annotations_df['category_name'].value_counts().reset_index(name='counts')
+        category_counts.columns = ['Category Name', 'Counts']
+        category_counts = category_counts.sort_values('Counts', ascending=False)
+        import altair as alt
+
+        if top_n != 'All':
+            category_counts = category_counts.head(top_n)
+        chart_data = category_counts
+
+        c = alt.Chart(chart_data).mark_bar().encode(
+            x=alt.X('Category Name:N', sort='-y'),
+            y='Counts:Q'
+        ).properties(
+            width=alt.Step(40) 
+        )
+
+        st.altair_chart(c, use_container_width=True)
+
+        st.write("### Distribution of heights and widths of images")
+
+        scatter_chart = alt.Chart(images_df).mark_circle(size=60).encode(
+            x=alt.X('width:Q', title='Image Width'),
+            y=alt.Y('height:Q', title='Image Height'),
+            tooltip=['file_name', 'width', 'height']
+        ).interactive().properties(
+            width=600,
+            height=400
+        )
+
+        st.altair_chart(scatter_chart, use_container_width=True)
+        
+        
+    
+    with tab4:
         st.write("## Connect with Us")
         with st.form("contact_form"):
             st.write("Feel free to reach out to us!")
@@ -181,7 +301,8 @@ def main():
             st.markdown("#### Tejas Rawal")
             st.markdown(f"{linkedin_icon} [LinkedIn](https://www.linkedin.com/in/tejasrawal)", unsafe_allow_html=True)
             st.markdown(f"{github_icon} [GitHub](https://github.com/tejas-rawal)", unsafe_allow_html=True)
-
+    
+        
 def inject_custom_css():
     custom_css = """
         <style>
