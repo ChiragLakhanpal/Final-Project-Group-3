@@ -1,8 +1,6 @@
 import os
 import random
 
-import params
-
 import numpy as np
 import torch
 
@@ -14,7 +12,7 @@ CHANNELS = 3
 IMAGE_SIZE = 256
 
 # hyperparameters
-N_EPOCH = 10
+N_EPOCH = 3
 LEARNING_RATE = 1e-2
 MOMENTUM = 0.9
 THRESHOLD = 0.6
@@ -31,7 +29,3 @@ SEED = 1122
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 random.seed(SEED)
-
-if __name__ == "main":
-    # call model and return results
-    print("Hello World")

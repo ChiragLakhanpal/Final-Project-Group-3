@@ -2,15 +2,12 @@ from enum import Enum
 import os
 from typing import Callable, Mapping, Sequence
 
+from params import CHANNELS, DATA_DIR, IMAGE_SIZE
+
 import cv2
 import torch
 from torch.utils import data
 
-DATA_DIR = os.path.join("..", "Data")
-
-# image config
-CHANNELS = 3
-IMAGE_SIZE = 224
 
 class DatasetType(Enum):
     TRAIN = "train"
@@ -29,18 +26,20 @@ class CustomDataset(data.Dataset):
     
     def __getitem__(self, index):
         image_id = self.image_ids[index]
-        data = self.annotations_map.get(image_id, None)
+        annotations_data: dict = self.annotations_map.get(image_id, None)
         filepath = os.path.join(DATA_DIR, self.dataset_type, "images", data["file_name"])
 
-        # load labels
+        # load targets
+        # dict containing boxes, categories, image_id, area, is_crowd, masks (Optional)
+        annotations_target = torch.Tensor(annotations_data)
 
         # load image
-        img = cv2.imread(filepath)
+        image = cv2.imread(filepath)
 
         if self.transforms:
-            img = self.transforms(img)
+            image = self.transforms(image)
 
-        x = torch.FloatTensor(img)
-        x = torch.reshape(x, (CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
+        image = torch.FloatTensor(image)
+        image = torch.reshape(image, (CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
 
-        return x, data
+        return image, annotations_target

@@ -24,3 +24,7 @@ def read_test_data(batch_size=100):
     test_generator = data.DataLoader(test_set, **test_params)
 
     return test_generator
+
+
+def test_model(batch_size=100, pretrained=False):
+    pass
