@@ -24,10 +24,11 @@ from plotly.subplots import make_subplots
 import random
 
 cfg = get_cfg()
-config_path = model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
+
+config_path = model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
 cfg.merge_from_file(config_path)
 cfg.MODEL.WEIGHTS = 'model_final.pth'
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.2
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.1
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 498
 predictor = DefaultPredictor(cfg)
 
@@ -118,8 +119,9 @@ def predict_and_visualize(image_path, predictor, metadata,class_to_category, ann
     class_names = [category["name"] for category_id in category_id for category in annotations["categories"] if category["id"] == category_id]
     formatted_names = [format_names(name) for name in class_names]
 
-    return formatted_names 
 
+    return formatted_names    
+    
 def save_uploaded_file(uploaded_file):
     try:
         temp_dir = tempfile.mkdtemp()  
@@ -182,7 +184,9 @@ def main():
                     detected_items = custom_predict(image_path)
 
                 st.write("## Detected Items")
-                st.write(f"Found {len(detected_items)} items:")
+                # display the detected items through st.write.
+                st.write(f"Detected {len(detected_items)} item(s): {', '.join(detected_items)}")
+
 
                 for item in detected_items:
                     nutrition_data = get_calorie_info(item)
@@ -219,23 +223,20 @@ def main():
         annotations_df['category_name'] = annotations_df['category_name'].apply(lambda x: x.replace('_', ' '))
         annotations_df['category_name'] = annotations_df['category_name'].apply(lambda x: x.capitalize())
 
-        # Display first few rows from each DataFrame
-        st.write("#### Categories")
-        st.dataframe(categories_df.head())
+        with st.container():
 
-        st.write("#### Images")
-        st.dataframe(images_df.head())
+            # Display first few rows from each DataFrame
+            st.write("#### Categories")
+            st.dataframe(categories_df.head(), width=800)
 
-        st.write("#### Annotations")
-        st.dataframe(annotations_df.head())
+            st.write("#### Images")
+            st.dataframe(images_df.head(), width=800)
 
-        # st.write("### Sample Images with Annotations")
+            st.write("#### Annotations")
+            st.dataframe(annotations_df.head(), width=800)
 
-        # image_ids = random.sample(list(images_df['id']), 12)
+        # Chart 1: Distribution of images per category
         
-        # fig = plotly_images_with_segmentation(image_ids, annotations_data, root_dir, rows=2, cols=6)
-        # st.plotly_chart(fig, use_container_width=True)
-
         st.write("### Category Distribution")
         top_n = st.selectbox("Select number of top categories to display:", [10, 20, 50, 100, 'All'])
 
@@ -257,6 +258,8 @@ def main():
 
         st.altair_chart(c, use_container_width=True)
 
+        # Chart 2: Distribution of images per category
+        
         st.write("### Distribution of heights and widths of images")
 
         scatter_chart = alt.Chart(images_df).mark_circle(size=60).encode(
@@ -270,7 +273,67 @@ def main():
 
         st.altair_chart(scatter_chart, use_container_width=True)
         
+        # Chart 3: Distribution of aspect ratios of images
+
+        st.write("### Distribution of aspect ratios of images")
         
+        # Calculate Aspect Ratios
+        images_df['aspect_ratio'] = images_df['width'] / images_df['height']
+
+        # Bin aspect ratios into categories
+        aspect_ratio_bins = pd.cut(images_df['aspect_ratio'], bins=[0, 0.5, 1, 1.5, 2, np.inf], labels=['<0.5', '0.5-1', '1-1.5', '1.5-2', '>2'])
+        aspect_ratio_counts = aspect_ratio_bins.value_counts().reset_index()
+        aspect_ratio_counts.columns = ['aspect_ratio', 'count']
+
+        # Adjusted Density Plot for Aspect Ratios with increased bandwidth
+        aspect_ratio_density = alt.Chart(images_df).transform_density(
+            'aspect_ratio', 
+            as_=['aspect_ratio', 'density'],
+            bandwidth=0.1,  # Increase the bandwidth for smoother curves
+            extent=[0, max(images_df['aspect_ratio'])],  # Adjust the extent if necessary
+            groupby=[]
+        ).mark_area().encode(
+            x='aspect_ratio:Q',
+            y='density:Q'
+        ).properties(
+            width=400,
+            height=400
+        )
+
+        st.altair_chart(aspect_ratio_density, use_container_width=True)
+
+
+        # Chart 4: Distribution of annotation counts per image
+
+        st.write("### Distribution of annotation counts per image (log scale)")
+                    
+        # Calculation of annotation counts
+        annotation_counts = annotations_df['image_id'].value_counts().reset_index()
+        annotation_counts.columns = ['image_id', 'annotation_count']
+
+        # Adjusting the bin size and using a log scale
+        bar_chart = alt.Chart(annotation_counts).mark_bar().encode(
+            x=alt.X('annotation_count:Q', bin=alt.Bin(maxbins=50), title='Annotation Count Bins'),
+            y=alt.Y('count()', title='Number of Images', scale=alt.Scale(type='log')),
+            tooltip=[alt.Tooltip('annotation_count:Q', title='Annotation Count'), alt.Tooltip('count()', title='Number of Images')]
+        ).properties(
+            width=600,
+            height=400
+        )
+
+        st.altair_chart(bar_chart, use_container_width=True)
+
+        # Chart 5: Distribution of area of annotations per category
+        
+        st.write("### Distribution of area of annotations per category")
+        
+        # Calculate the sum of areas per category
+        category_area = annotations_df.groupby('category_name')['area'].sum().reset_index()
+        category_area.columns = ['category_name', 'total_area']
+
+        fig = px.treemap(category_area, path=['category_name'], values='total_area')
+        st.plotly_chart(fig, use_container_width=True)
+
     
     with tab4:
         st.write("## Connect with Us")
