@@ -19,6 +19,7 @@ import seaborn as sns
 from pylab import rcParams
 import matplotlib.pyplot as plt
 from matplotlib import rc
+from pathlib import Path
 os.system('pip install pycocotools')
 from pycocotools.coco import COCO
 
@@ -45,13 +46,37 @@ val_coco = COCO(VAL_ANNOTATIONS_PATH)
 with open(TRAIN_ANNOTATIONS_PATH) as f:
     train_annotations_data = json.load(f)
 
-train_annotations_data['annotations'][0]
+#train_annotations_data['annotations'][0]
+
+id = []
+name = []
+for i in train_annotations_data['categories']:
+  id.append(i['id'])
+  name.append(i['name'])
+df_train = pd.DataFrame(list(zip(id, name)),
+               columns =['ID', 'name'])
+
+cat_name_mapping = df_train.set_index('ID')['name'].to_dict()
+
+sorted_cat_name_mapping = dict(sorted(cat_name_mapping.items()))
+sorted_cat_name_mapping
+
+sorted_train_df = pd.DataFrame(sorted_cat_name_mapping.items(), columns=['ID', 'Name'])
+sorted_train_df['class'] = sorted_train_df.index
+sorted_train_df.tail()
+
+sorted_train_df['class'] = sorted_train_df.index
+sorted_train_df.head()
+
+
+train_cat_class_mapping = sorted_train_df.set_index('ID')['class'].to_dict()
+
 
 training_info = []
 
 for a in train_annotations_data['annotations']:
   training_info.append(a)
-training_info[0]
+
 
 categories = []
 
@@ -59,39 +84,16 @@ for a in train_annotations_data['annotations']:
   categories.append(a['category_id'])
 categories = list(set(categories))
 categories.sort()
-categories
-
-img_info = training_info[20]
-img_id = str(img_info['image_id'])
-img = Image.open(TRAIN_IMAGE_DIRECTIORY + img_id + '.jpg')
-img = img.convert('RGB')
-#plt.imshow(img)
-
-#img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-plt.imshow(img)
-
-####checking annotation for solo image
-
-img_info = pd.DataFrame(train_coco.loadImgs(train_coco.getImgIds()))
-i = 70
-annIds = train_coco.getAnnIds(imgIds=img_info['id'][i])
-anns = train_coco.loadAnns(annIds)
-print(anns)
-img = plt.imread(TRAIN_IMAGE_DIRECTIORY+img_info['file_name'][i])
-[x,y,w,h] = anns[0]['bbox']
-#create rectagle bbox of size given in dataset
-cv2.rectangle(img, (int(x), int(y)), (int(x+h), int(y+w)), (255,0,0), 2)
-plt.imshow(img)
 
 # !pip install pathlib
 from pathlib import Path
 
 
-def create_Yolo_labels(coco, data_type):
-    labels_path = Path(f"./data/{data_type}/Yolo_labels")
-
+def create_Yolo_labels(coco, data_type, mapping_list):
+    # labels_path = Path(f"./dummy_train/{data_type}")
+    labels_path = Path(f"./food/labels/{data_type}")
     labels_path.mkdir(parents=True, exist_ok=True)
-
+    # counter = 0
     img_info = pd.DataFrame(coco.loadImgs(coco.getImgIds()))
     print(labels_path)
     for i in tqdm(range(0, len(img_info))):
@@ -99,19 +101,25 @@ def create_Yolo_labels(coco, data_type):
         anns = coco.loadAnns(annIds)
         img_id = anns[0]['image_id']
         label_name = f"{img_id}.txt"
-
+        width = img_info.query('id=={}'.format(img_id))["width"].values
+        width = width[0]
+        height = img_info.query('id=={}'.format(img_id))["height"].values
+        height = height[0]
+        if i < 5:
+            print(height)
         with (labels_path / label_name).open(mode="w") as label_file:
 
             for j in range(0, len(anns)):
-                category_idx = anns[j]['category_id']
+                cat_ID = anns[j]['category_id']
+                category_idx = mapping_list[cat_ID]
                 [x, y, bbox_width, bbox_height] = anns[j]['bbox']
 
                 label_file.write(
-                    f"{category_idx} {x + bbox_width / 2} {y + bbox_height / 2} {bbox_width} {bbox_height}\n"
+                    f"{category_idx} {(x + bbox_width / 2) / width} {(y + bbox_height / 2) / width} {bbox_width / width} {bbox_height / height}\n"
                 )
+create_Yolo_labels(train_coco,'train',train_cat_class_mapping)
 
-create_Yolo_labels(train_coco,'train')
-create_Yolo_labels(val_coco,'val')
+create_Yolo_labels(val_coco,'val',train_cat_class_mapping)
 
 
 
