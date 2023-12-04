@@ -11,6 +11,7 @@ TRAIN_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/train/images")
 TRAIN_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/train/annotations.json")
 TEST_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/test/images")
 TEST_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/test/annotations.json")
+OUTPUT_DIR = os.path.join(ROOT_DIR, "Code/tejas-faster-rcnn/output")
 
 # image config
 CHANNELS = 3
