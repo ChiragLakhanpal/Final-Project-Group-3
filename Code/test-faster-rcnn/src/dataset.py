@@ -9,16 +9,18 @@ from pycocotools.coco import COCO
 import torch
 from torch.utils import data
 from torchvision import tv_tensors
-from torchvision.io import read_image
 from torchvision.transforms.v2 import functional as F
 
 
-class CustomDataset(data.Dataset):
+class CustomCocoDataset(data.Dataset):
     def __init__(self, annotations_path, images_dir, transforms=None):
         self.coco_annotations = COCO(annotations_path)
         self.image_ids = list(sorted(self.coco_annotations.imgs.keys()))
         self.images_dir = images_dir
         self.transforms = transforms
+
+        self.category_ids = sorted(self.coco_annotations.getCatIds())
+        self.categories_map = { int(class_id): int(category_id) for class_id, category_id in enumerate(self.category_ids) }
     
     def __len__(self):
         return len(self.image_ids)
@@ -43,6 +45,9 @@ class CustomDataset(data.Dataset):
         boxes = []
         # Size of bbox (Rectangular)
         areas = []
+        # category class ID based on category ID
+        labels = []
+
         for i in range(num_objs):
             coco_bbox = coco_annotation[i]['bbox']
             torch_bbox = self.build_bbox(coco_bbox)
@@ -62,7 +67,7 @@ class CustomDataset(data.Dataset):
         image = torch.reshape(image, (CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
         annotations_target = {
             "image_id": torch.Tensor(image_id),
-            # "labels": annotations_data["categories"],
+            "labels": torch.Tensor(labels),
             "boxes": tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=F.get_size(image)),
             # "masks": tv_tensors.Mask(annotations_data["masks"]),
             "iscrowd": torch.zeros((num_objs,), dtype=torch.int64)

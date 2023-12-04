@@ -7,6 +7,7 @@ from src.train import get_train_dataset, train_epoch
 from src.test import get_test_dataset, test_epoch
 from src.config import *
 
+from pycocotools.coco import COCO
 import torch
 from torchvision.models.detection.roi_heads import maskrcnn_loss
 
@@ -25,6 +26,24 @@ def get_raw_annotations(phase):
         annotations_data = json.loads(file_json.read())
         return annotations_data
 
+@cache
+def get_categories_map(phase: Phase):
+    annotations_path = (
+        TRAIN_ANNOTATIONS_PATH if phase == Phase.TRAIN
+        else TEST_ANNOTATIONS_PATH
+    )
+    coco_annotations = COCO(annotations_path)
+    category_ids = sorted(coco_annotations.getCatIds())
+    categories_map = {
+        int(class_id): int(category_id) for class_id, category_id in enumerate(category_ids)
+    }
+
+    # save as json
+    with open("categories_map.json", "w") as f:
+        json.dump(categories_map, f)
+    
+    return categories_map
+
 
 class ModelRunner:
     def __init__(self, batch_size: int=100) -> None:
@@ -32,8 +51,6 @@ class ModelRunner:
         # self.model = build_model()
    
     def train_and_test(self):
-        # train_annotations = get_raw_annotations(Phase.TRAIN)
-        # test_annotations = get_raw_annotations(Phase.TEST)
         train_ds = get_train_dataset(self.batch_size)
         test_ds = get_test_dataset(self.batch_size)
         

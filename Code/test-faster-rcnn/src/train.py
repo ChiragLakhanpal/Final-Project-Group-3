@@ -1,5 +1,6 @@
 
 from .config import *
+from .dataset import CustomCocoDataset
 
 import torch
 import torch.nn as nn
@@ -14,6 +15,7 @@ def get_train_dataset(batch_size: int=100):
     train_transforms = v2.Compose([
         v2.ToImage(),
         v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
+        v2.SanitizeBoundingBoxes(),
         v2.ToDtype(torch.float32, scale=True),
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -24,14 +26,11 @@ def get_train_dataset(batch_size: int=100):
         "collate_fn": lambda batch: tuple(zip(*batch))
     }
 
-    training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH, transforms=train_transforms)
-    # training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH)
+    # training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH, transforms=train_transforms)
+    training_dataset = CustomCocoDataset(TRAIN_ANNOTATIONS_PATH, TRAIN_IMAGES_DIR, transforms=train_transforms)
     #  make dataset compatible with transforms
     # training_dataset = datasets.wrap_dataset_for_transforms_v2(training_dataset, target_keys=["boxes", "labels", "masks"])
     # training_dataset = datasets.wrap_dataset_for_transforms_v2(training_dataset, target_keys=["boxes", "labels"])
-    
-    # data_transform = GeneralizedRCNNTransform(min_size=800, max_size=1333, image_mean=[0.485, 0.456, 0.406], image_std=[0.229, 0.224, 0.225])
-    # training_dataset.transform = data_transform
     
     training_generator = data.DataLoader(training_dataset, **train_params)
 
