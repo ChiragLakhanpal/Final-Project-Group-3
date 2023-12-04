@@ -17,12 +17,13 @@ def get_test_dataset(batch_size=100):
         v2.ToImage(),
         v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
         v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
     test_params = {
         "batch_size": batch_size,
         "shuffle": False,
-        "collate_fn": collate_fn
+        "collate_fn": collate_fn,
     }
 
     test_dataset = CustomCocoDataset(TEST_ANNOTATIONS_PATH, TEST_IMAGES_DIR, transforms=test_transforms)
@@ -32,40 +33,42 @@ def get_test_dataset(batch_size=100):
 
 
 class ModelInference:
-    def __init__(self, iouType="bbox"):
-        self.model = get_model_object_detection()
-        self.data = get_test_dataset(BATCH_SIZE)
-        self.coco_gt = self.data.dataset.coco_annotations
-        self.coco_eval = COCOeval(self.coco_gt, iouType=iouType)
-    
-    def run(self):
-        checkpoint = torch.load(f"{OUTPUT_DIR}/best_model.pt", map_location=DEVICE)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.model.to(DEVICE)
-        self.model.eval()
+    def __init__(self, iouType="bbox"):    
+        self.iou_type = iouType
 
-        for images, targets in self.data:
+    def run(self):
+        model = get_model_object_detection()
+        test_data = get_test_dataset(BATCH_SIZE)
+        coco_gt = self.data.dataset.coco_annotations
+        coco_eval = COCOeval(self.coco_gt, iouType=self.iouType)
+        # load checkpoint
+        checkpoint = torch.load(os.path.join(OUTPUT_DIR, "best_model.pt"), map_location=DEVICE)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        # put model into evaluation mode
+        model.eval()
+
+        for images, targets in test_data:
             images = list(image.to(DEVICE) for image in images)
             # targets = [{k: v.to(DEVICE) for k, v in t.items()} for t in targets]
 
-            with torch.set_grad_enabled(False):
+            with torch.no_grad():
                 # model produces bbox, labels, and scores
-                predictions = self.model(images)
+                predictions = model(images)
             
             # detach and convert predictions to COCO format
-            predictions = self.coco_predictions(predictions, targets)
+            results = self.coco_predictions(predictions, targets)
 
             # update COCOeval with current batch
-            # self.coco_eval.update(predictions)
-            self.coco_eval.cocoDt = self.coco_gt.loadRes(predictions)
-            self.coco_eval.evaluate()
+            coco_dt = COCO.loadRes(coco_gt, results) if results else COCO()
+            coco_eval.cocoDt = coco_dt
+            # self.coco_eval.evaluate()
             # self.coco_eval.accumulate()
-            
-        # Summarize and print results
-        self.coco_eval.accumulate()
-        stats = self.coco_eval.summarize()
 
-        return self.coco_eval, stats
+        # Summarize and print results
+        coco_eval.accumulate()
+        stats = coco_eval.summarize()
+
+        return coco_eval, stats
 
     def coco_predictions(self, predictions, targets):
         coco_predictions = []
@@ -84,8 +87,10 @@ class ModelInference:
                     "bbox": [float(coord) for coord in box],
                     "score": float(score),
                 })
+        
+        return coco_predictions
     
-    def predict_image(self, image):
+    def predict_image(self, image, model):
         image = cv2.imread(image)
         orig_image = image.copy()
         # BGR to RGB
@@ -100,4 +105,8 @@ class ModelInference:
         image = torch.unsqueeze(image, 0)
 
         with torch.no_grad():
-            predictions = self.model(image.to(DEVICE))
+            predictions = model(image.to(DEVICE))
+    
+    def convert_to_xywh(self, boxes):
+        xmin, ymin, xmax, ymax = boxes.unbind(1)
+        return torch.stack((xmin, ymin, xmax - xmin, ymax - ymin), dim=1)

@@ -34,12 +34,13 @@ GRADIENT_CLIPPING = 1.0
 # weight decay (L2 regularization) for the optimizer
 WEIGHT_DECAY = 1e-6
 # number of epochs for training
-EPOCHS = 1
+EPOCHS = 10
 
 # cuda config
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+NUM_WORKERS = 4
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 
 # seeding
 SEED = 1122

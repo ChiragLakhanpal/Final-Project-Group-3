@@ -1,6 +1,7 @@
 
 from .config import *
 from .dataset import CustomCocoDataset
+from .utils import collate_fn
 
 import torch
 import torch.nn as nn
@@ -22,7 +23,8 @@ def get_train_dataset(batch_size: int=100):
     train_params = {
         "batch_size": batch_size,
         "shuffle": True,
-        "collate_fn": lambda batch: tuple(zip(*batch))
+        "collate_fn": collate_fn,
+        "num_workers": NUM_WORKERS
     }
 
     # training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH, transforms=train_transforms)
