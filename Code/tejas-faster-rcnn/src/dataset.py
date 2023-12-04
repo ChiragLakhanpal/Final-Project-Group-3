@@ -68,7 +68,7 @@ class CustomCocoDataset(data.Dataset):
             image = self.transforms(image)
 
         annotations_target = {
-            "image_id": torch.Tensor(image_id),
+            "image_id": torch.as_tensor(image_id, dtype=torch.int16),
             "labels": torch.as_tensor(labels, dtype=torch.int64),
             "boxes": tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=F.get_size(image)),
             # "masks": tv_tensors.Mask(annotations_data["masks"]),

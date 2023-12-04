@@ -1,3 +1,6 @@
-/Data/*
 .vscode/*
 **/__pycache__/*
+
+
+/Data/*
+**/output/*

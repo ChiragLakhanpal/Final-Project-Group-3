@@ -43,7 +43,7 @@ def test_epoch(epoch, test_data, model, loss_list, loss_hist):
 
             with torch.set_grad_enabled(False):
                 # model produces loss dictionary
-                loss_dict = model(images)
+                loss_dict = model(images, targets)
             
             losses = sum(loss for loss in loss_dict.values())
             loss_value = losses.item()

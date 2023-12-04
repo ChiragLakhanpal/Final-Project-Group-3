@@ -99,6 +99,8 @@ class ModelRunner:
 
 
 # call model and return results
-runner = ModelRunner(batch_size=BATCH_SIZE)
+# runner = ModelRunner(batch_size=BATCH_SIZE)
+# results = runner.train_and_test()
 inference = ModelInference()
-results = runner.train_and_test()
+evaluator, stats = inference.run()
+stats
