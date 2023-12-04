@@ -79,7 +79,7 @@ class ModelRunner:
 
             train_loss_list = train_epoch(epoch, train_ds, self.model, self.optimizer, train_loss_list, train_loss_hist)
 
-            print(f"Epoch #{epoch+1} train loss: {train_loss_hist.value:.3f}")  
+            print(f"Epoch #{epoch} train loss: {train_loss_hist.value:.3f}")  
             # do metrics measurement here: IOU, AP:IOU > 0.5
 
             # update learning rate
@@ -87,7 +87,7 @@ class ModelRunner:
 
             test_loss_list = test_epoch(epoch, test_ds, self.model, test_loss_list, test_loss_hist)
  
-            print(f"Epoch #{epoch+1} test loss: {test_loss_hist.value:.3f}")   
+            print(f"Epoch #{epoch} test loss: {test_loss_hist.value:.3f}")   
             # do metrics measurements here: : IOU, AP:IOU > 0.5
 
             # save best model

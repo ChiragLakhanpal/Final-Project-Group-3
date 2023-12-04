@@ -26,13 +26,13 @@ DROPOUT = 0.4
 # batch size for training
 BATCH_SIZE = 16
 # learning rate for the optimizer
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 # momentum for the optimizer
-MOMENTUM = 0.999
+MOMENTUM = 0.99
 # gradient clipping value (for stability while training)
 GRADIENT_CLIPPING = 1.0
 # weight decay (L2 regularization) for the optimizer
-WEIGHT_DECAY = 1e-8
+WEIGHT_DECAY = 1e-6
 # number of epochs for training
 EPOCHS = 1
 

@@ -41,7 +41,7 @@ def train_epoch(epoch, train_data, model, optimizer, loss_list, loss_hist):
 
     # enable gradient calc
     with torch.set_grad_enabled(True):
-        with tqdm(total=len(train_data), desc=f"Epoch {epoch}") as pbar:
+        with tqdm(total=len(train_data), desc=f"Train Epoch {epoch}") as pbar:
             for idx, (images, targets) in enumerate(train_data):
                 images = [image.to(DEVICE) for image in images]
                 targets = [{k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]
@@ -49,7 +49,7 @@ def train_epoch(epoch, train_data, model, optimizer, loss_list, loss_hist):
                 # model produces a loss dictionary
                 loss_dict = model(images, targets)
                 
-                # calculate loss for categories and segmentation masks
+                # calculate loss for bounding boxes and labels
                 losses = sum(loss for loss in loss_dict.values())
                 loss_value = losses.item()
                 

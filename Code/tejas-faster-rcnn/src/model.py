@@ -10,7 +10,7 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 def get_model_object_detection():
     # load a model pre-trained on COCO
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights="DEFAULT")
+    model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(weights="DEFAULT")
 
     # replace the classifier with a new one, that has get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
