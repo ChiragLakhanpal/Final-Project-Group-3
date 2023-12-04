@@ -81,13 +81,18 @@ class BboxHead(nn.Module):
     def __init__(self, in_features, num_classes):
         super().__init__()
 
-        self.class_head = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(in_features=in_features, out_features=num_classes)
+        self.in_features = in_features
+        self.bbox_head = nn.Sequential(
+            # nn.AdaptiveAvgPool2d((1, 1)),
+            # dropout
+            nn.Linear(128 * in_features * in_features, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(in_features=512, out_features=num_classes * 4)
         )
     
     def forward(self, x):
-        pass
+        x = x.view(-1, 128 * self.in_features * self.in_features)
+        return self.bbox_head(x)
 
 class MaskHead(nn.Module):
     """
@@ -98,7 +103,7 @@ class MaskHead(nn.Module):
         self.conv = nn.Conv2d(in_channels=input_ch, out_channels=output_ch, kernel_size=1)
 
     def forward(self, x):
-        self.conv(x)
+        return self.conv(x)
 
 class ClassHead(nn.Module):
     """
@@ -113,47 +118,48 @@ class ClassHead(nn.Module):
         )
     
     def forward(self, x):
-        self.class_head(x)
+        return self.class_head(x)
 
 class CustomUNet(nn.Module):
     def __init__(self, input_channels):
         super().__init__()
         
-        # self.initial = DualConv(input_channels, 64)
-        # self.down1 = Contract(64, 128)
-        # self.down2 = Contract(128, 256)
-        # self.down3 = Contract(256, 512)
-        # self.down4 = Contract(512, 1024)
-        # self.up1 = Expand(1024, 512)
-        # self.up2 = Expand(512, 256)
-        # self.up3 = Expand(256, 128)
-        # self.up4 = Expand(128, 64)
+        self.initial = DualConv(input_channels, 64)
+        self.down1 = Contract(64, 128)
+        self.down2 = Contract(128, 256)
+        self.down3 = Contract(256, 512)
+        self.down4 = Contract(512, 1024)
+        self.up1 = Expand(1024, 512)
+        self.up2 = Expand(512, 256)
+        self.up3 = Expand(256, 128)
+        self.up4 = Expand(128, 64)
 
-        self.custom_unet = nn.Sequential(
-            DualConv(input_channels, 64),
-            # downsampling
-            Contract(64, 128),
-            Contract(128, 256),
-            Contract(256, 512),
-            Contract(512, 1024),
-            # upsampling
-            Expand(1024, 512),
-            Expand(512, 256),
-            Expand(256, 128),
-            Expand(128, 64),
-        )
+        # self.custom_unet = nn.Sequential(
+        #     DualConv(input_channels, 64),
+        #     # downsampling
+        #     Contract(64, 128),
+        #     Contract(128, 256),
+        #     Contract(256, 512),
+        #     Contract(512, 1024),
+        #     # upsampling
+        #     Expand(1024, 512),
+        #     Expand(512, 256),
+        #     Expand(256, 128),
+        #     Expand(128, 64),
+        # )
 
     def forward(self, x):
-        # x1 = self.initial(x)
-        # x2 = self.down1(x1)
-        # x3 = self.down2(x2)
-        # x4 = self.down3(x3)
-        # x5 = self.down4(x4)
-        # x = self.up1(x5, x4)
-        # x = self.up2(x, x3)
-        # x = self.up3(x, x2)
-        # x = self.up4(x, x1)
-        return self.custom_unet(x)
+        x1 = self.initial(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+        # return self.custom_unet(x)
+        return x
         
 class CustomMultiLabelUNet(nn.Module):
     def __init__(self, output_classes):
@@ -163,7 +169,7 @@ class CustomMultiLabelUNet(nn.Module):
         # self.rpn = CustomRPN()
         self.bbox_head = BboxHead(in_features=64, num_classes=output_classes)
         self.class_head = ClassHead(input_features=64, num_classes=output_classes)
-        self.mask_head = MaskHead(input_ch=64, num_classes=output_classes)
+        self.mask_head = MaskHead(input_ch=64, output_ch=output_classes)
 
     def forward(self, x):
         features = self.backbone(x)
@@ -189,8 +195,8 @@ class CustomMultiLabelUNet(nn.Module):
 def save_model_summary(model: nn.Module, name: str):
     print(model, file=open(f"model_{name}_summary.txt", "w"))
 
-def build_model(num_classes: int):
-    model = CustomMultiLabelUNet(target_classes=num_classes)
+def build_model():
+    model = CustomMultiLabelUNet(output_classes=NUM_CLASSES)
     
     model = model.to(DEVICE)
     # catgeory_criterion = nn.BCEWithLogitsLoss()

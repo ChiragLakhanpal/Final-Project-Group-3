@@ -1,13 +1,14 @@
 from .dataset import CustomDataset
-from .params import DEVICE, IMAGE_SIZE, TEST_IMAGES_PATH
+from .params import DEVICE, IMAGE_SIZE, TEST_ANNOTATIONS_PATH, TEST_IMAGES_DIR
 
 import torch
 from torch.utils import data
+from torchvision import datasets
 from torchvision.transforms import v2
 import tqdm
 
 
-def get_test_dataset(annotations, batch_size=100):
+def get_test_dataset(batch_size=100):
     # image transforms
     test_transforms = v2.Compose([
         v2.ToImage(),
@@ -22,7 +23,12 @@ def get_test_dataset(annotations, batch_size=100):
         "collate_fn": lambda batch: tuple(zip(*batch))
     }
 
-    test_dataset = CustomDataset(annotations, images_dir=TEST_IMAGES_PATH, transform=test_transforms)
+    # test_dataset = CustomDataset(
+    #     annotations_path=TEST_ANNOTATIONS_PATH, images_dir=TEST_IMAGES_DIR, transforms=test_transforms
+    # )
+    test_dataset = datasets.CocoDetection(TEST_IMAGES_DIR, TEST_ANNOTATIONS_PATH, transforms=test_transforms)
+    #  make dataset compatible with transforms
+    test_dataset = datasets.wrap_dataset_for_transforms_v2(test_dataset, target_keys=["boxes", "labels", "masks"])
     test_generator = data.DataLoader(test_dataset, **test_params)
 
     return test_generator

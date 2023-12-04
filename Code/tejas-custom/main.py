@@ -17,10 +17,10 @@ class Phase(Enum):
 def get_raw_annotations(phase):
     annotations_path = (
         TRAIN_ANNOTATIONS_PATH if phase == Phase.TRAIN
-        else TEST_IMAGES_PATH
+        else TEST_ANNOTATIONS_PATH
     )
 
-    with open(os.path.join(DATA_DIR, annotations_path), "r") as file_json:
+    with open(os.path.join(ROOT_DIR, annotations_path), "r") as file_json:
         annotations_data = json.loads(file_json.read())
         return annotations_data
 
@@ -31,10 +31,10 @@ class ModelRunner:
         # self.model = build_model()
    
     def train_and_test(self):
-        train_annotations = get_raw_annotations(Phase.TRAIN)
-        test_annotations = get_raw_annotations(Phase.TEST)
-        train_ds = get_train_dataset(train_annotations, self.batch_size)
-        test_ds = get_test_dataset(test_annotations, self.batch_size)
+        # train_annotations = get_raw_annotations(Phase.TRAIN)
+        # test_annotations = get_raw_annotations(Phase.TEST)
+        train_ds = get_train_dataset(self.batch_size)
+        test_ds = get_test_dataset(self.batch_size)
         
         self.model = build_model()
         self.optimizer = set_optimizer(self.model)
@@ -55,7 +55,7 @@ class ModelRunner:
             # save best model
             torch.save(self.model.state_dict(), "custom_model.pt")
 
-# if __name__ == "main":
-    # call model and return results
+
+# call model and return results
 runner = ModelRunner(batch_size=BATCH_SIZE)
 results = runner.train_and_test()

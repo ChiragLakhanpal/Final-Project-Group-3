@@ -1,13 +1,16 @@
 from .dataset import CustomDataset
-from .params import DEVICE, IMAGE_SIZE, TRAIN_IMAGES_PATH
+from .params import DEVICE, IMAGE_SIZE, TRAIN_ANNOTATIONS_PATH, TRAIN_IMAGES_DIR
 
 import torch
 from torch.utils import data
+from torchvision import datasets
 from torchvision.transforms import v2
 from tqdm import tqdm
 
+def custom_transform(batch):
+    return list(zip(*batch))
 
-def get_train_dataset(annotations, batch_size: int=100):
+def get_train_dataset(batch_size: int=100):
     train_transforms = v2.Compose([
         v2.ToImage(),
         v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
@@ -18,10 +21,17 @@ def get_train_dataset(annotations, batch_size: int=100):
     train_params = {
         "batch_size": batch_size,
         "shuffle": True,
-        "collate_fn": lambda batch: tuple(zip(*batch))
+        "collate_fn": lambda batch: list(zip(*batch))
+        # "collate_fn": custom_transform
     }
 
-    training_dataset = CustomDataset(annotations, image_dir=TRAIN_IMAGES_PATH, transform=train_transforms)
+    # training_dataset = CustomDataset(
+    #     annotations_path=TRAIN_ANNOTATIONS_PATH, images_dir=TRAIN_IMAGES_DIR, transforms=train_transforms
+    # )
+    training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH, transforms=train_transforms)
+    #  make dataset compatible with transforms
+    training_dataset = datasets.wrap_dataset_for_transforms_v2(training_dataset, target_keys=["boxes", "labels", "masks"])
+
     training_generator = data.DataLoader(training_dataset, **train_params)
 
     return training_generator
@@ -37,11 +47,11 @@ def train_epoch(epoch, train_data, model, optimizer, criterion):
                 optimizer.zero_grad()
                 # category_loss.zero_grad()
                 
-                images = images.to(DEVICE)
-                targets = targets.to(DEVICE)
+                images = torch.stack(images).to(DEVICE)
+                # targets = targets.to(DEVICE)
 
                 # model produces category and and mask vectors
-                output = model(images)                
+                output = model(images)
                 
                 # calculate loss for categories and segmentation masks
                 loss = criterion(output, targets)

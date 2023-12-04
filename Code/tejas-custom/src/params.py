@@ -5,17 +5,17 @@ import numpy as np
 import torch
 
 
-DATA_DIR = os.path.join("..", "Data")
-
 # Data paths
-TRAIN_IMAGES_PATH = os.path.join(DATA_DIR, "/train/images/")
-TRAIN_ANNOTATIONS_PATH = os.path.join(DATA_DIR, "/train/annotations.json")
-TEST_IMAGES_PATH = os.path.join(DATA_DIR, "/val/images/")
-TEST_ANNOTATIONS_PATH = os.path.join(DATA_DIR, "/val/annotations.json")
+ROOT_DIR = "/home/ubuntu/Final-Project/Final-Project-Group-3"
+TRAIN_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/train/images")
+TRAIN_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/train/annotations.json")
+TEST_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/test/images")
+TEST_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/test/annotations.json")
 
 # image config
 CHANNELS = 3
 IMAGE_SIZE = 256
+NUM_CLASSES = 273
 
 #### Hyperparameters ####
 # target probability threshold
@@ -23,7 +23,7 @@ THRESHOLD = 0.5
 # Drouput layer value
 DROPOUT = 0.4
 # batch size for training
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 # learning rate for the optimizer
 LEARNING_RATE = 1e-3
 # momentum for the optimizer

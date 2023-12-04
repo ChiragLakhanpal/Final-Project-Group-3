@@ -2,8 +2,8 @@
 # Set data directory
 import os
 
-IMAGES_DIR = os.path.join("../../../train/train/images/")
-ANNOTATIONS = os.path.join("../../../train/train/annotations.json")
+IMAGES_DIR = os.path.join("../../../Data/train/images/")
+ANNOTATIONS = os.path.join("../../../Data/train/annotations.json")
 
 #%%
 # load and parse annotations file
