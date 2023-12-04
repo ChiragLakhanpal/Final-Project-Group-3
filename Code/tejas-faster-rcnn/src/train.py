@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 from torch.utils import data
 from torchvision import datasets
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.transforms import v2
 from tqdm import tqdm
 

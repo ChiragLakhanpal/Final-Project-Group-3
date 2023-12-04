@@ -15,7 +15,7 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "Code/tejas-faster-rcnn/output")
 
 # image config
 CHANNELS = 3
-IMAGE_SIZE = 224
+IMAGE_SIZE = 512
 NUM_CLASSES = 273
 
 #### Hyperparameters ####

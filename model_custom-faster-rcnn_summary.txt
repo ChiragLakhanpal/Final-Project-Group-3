@@ -221,8 +221,8 @@ FasterRCNN(
       (fc7): Linear(in_features=1024, out_features=1024, bias=True)
     )
     (box_predictor): FastRCNNPredictor(
-      (cls_score): Linear(in_features=1024, out_features=498, bias=True)
-      (bbox_pred): Linear(in_features=1024, out_features=1992, bias=True)
+      (cls_score): Linear(in_features=1024, out_features=273, bias=True)
+      (bbox_pred): Linear(in_features=1024, out_features=1092, bias=True)
     )
   )
 )

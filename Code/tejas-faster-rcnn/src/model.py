@@ -83,4 +83,4 @@ def set_scheduler(optimizer):
     )
 
 def save_model_summary(model: nn.Module, name: str):
-    print(model, file=open(f"model_{name}_summary.txt", "w"))
+    print(model, file=open(f"{OUTPUT_DIR}/model_{name}_summary.txt", "w"))
