@@ -19,8 +19,8 @@ IMAGE_SIZE = 512
 NUM_CLASSES = 273
 
 #### Hyperparameters ####
-# target probability threshold
-THRESHOLD = 0.5
+# detection threshold
+THRESHOLD = 0.75
 # Drouput layer value
 DROPOUT = 0.4
 # batch size for training
@@ -46,3 +46,7 @@ SEED = 1122
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 random.seed(SEED)
+
+
+# random color map
+COLORS = np.random.uniform(0, 255, size=(len(NUM_CLASSES), 3))

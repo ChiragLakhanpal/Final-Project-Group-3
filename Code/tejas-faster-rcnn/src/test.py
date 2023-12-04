@@ -1,10 +1,12 @@
 from .config import *
+from .dataset import CustomCocoDataset
+from .utils import collate_fn
 
 import torch
 from torch.utils import data
 from torchvision import datasets
 from torchvision.transforms import v2
-import tqdm
+from tqdm import tqdm
 
 
 def get_test_dataset(batch_size=100):
@@ -19,13 +21,14 @@ def get_test_dataset(batch_size=100):
     test_params = {
         "batch_size": batch_size,
         "shuffle": False,
-        "collate_fn": lambda batch: tuple(zip(*batch))
+        "collate_fn": collate_fn
     }
 
-    test_dataset = datasets.CocoDetection(TEST_IMAGES_DIR, TEST_ANNOTATIONS_PATH, transforms=test_transforms)
+    # test_dataset = datasets.CocoDetection(TEST_IMAGES_DIR, TEST_ANNOTATIONS_PATH, transforms=test_transforms)
     #  make dataset compatible with transforms
     # test_dataset = datasets.wrap_dataset_for_transforms_v2(test_dataset, target_keys=["boxes", "labels", "masks"])
-    test_dataset = datasets.wrap_dataset_for_transforms_v2(test_dataset, target_keys=["boxes", "labels"])
+
+    test_dataset = CustomCocoDataset(TEST_ANNOTATIONS_PATH, TEST_IMAGES_DIR, transforms=test_transforms)
     test_generator = data.DataLoader(test_dataset, **test_params)
 
     return test_generator

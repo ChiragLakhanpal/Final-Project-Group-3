@@ -64,6 +64,9 @@ class CustomCocoDataset(data.Dataset):
         image = np.transpose(image, (2, 0, 1))
         image = torch.FloatTensor(image)
 
+        if self.transforms:
+            image = self.transforms(image)
+
         annotations_target = {
             "image_id": torch.Tensor(image_id),
             "labels": torch.as_tensor(labels, dtype=torch.int64),
@@ -71,10 +74,6 @@ class CustomCocoDataset(data.Dataset):
             # "masks": tv_tensors.Mask(annotations_data["masks"]),
             "iscrowd": torch.as_tensor(is_crowd, dtype=torch.int64)
         }
-
-        if self.transforms:
-            image = self.transforms(image)
-
         
         image = torch.reshape(image, (CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
 

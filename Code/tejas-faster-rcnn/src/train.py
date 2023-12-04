@@ -26,11 +26,11 @@ def get_train_dataset(batch_size: int=100):
     }
 
     # training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH, transforms=train_transforms)
-    training_dataset = CustomCocoDataset(TRAIN_ANNOTATIONS_PATH, TRAIN_IMAGES_DIR, transforms=train_transforms)
+
     #  make dataset compatible with transforms
     # training_dataset = datasets.wrap_dataset_for_transforms_v2(training_dataset, target_keys=["boxes", "labels", "masks"])
-    # training_dataset = datasets.wrap_dataset_for_transforms_v2(training_dataset, target_keys=["boxes", "labels"])
-    
+
+    training_dataset = CustomCocoDataset(TRAIN_ANNOTATIONS_PATH, TRAIN_IMAGES_DIR, transforms=train_transforms)
     training_generator = data.DataLoader(training_dataset, **train_params)
 
     return training_generator

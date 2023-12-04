@@ -3,6 +3,7 @@ from functools import cache
 import json
 
 from src.config import *
+# from src.inference import ModelInference
 from src.model import get_model_instance_segmentation, get_model_object_detection, set_optimizer, set_scheduler
 from src.train import get_train_dataset, train_epoch
 from src.test import get_test_dataset, test_epoch
@@ -99,4 +100,5 @@ class ModelRunner:
 
 # call model and return results
 runner = ModelRunner(batch_size=BATCH_SIZE)
+# inference = ModelInference()
 results = runner.train_and_test()
