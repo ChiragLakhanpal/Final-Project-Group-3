@@ -2,10 +2,11 @@ from enum import Enum
 from functools import cache
 import json
 
+from src.config import *
 from src.model import get_model_instance_segmentation, get_model_object_detection, set_optimizer, set_scheduler
 from src.train import get_train_dataset, train_epoch
 from src.test import get_test_dataset, test_epoch
-from src.config import *
+from src.utils import Averager, SaveBestModel, save_loss_plot
 
 from pycocotools.coco import COCO
 import torch
@@ -51,6 +52,17 @@ class ModelRunner:
         # self.model = build_model()
    
     def train_and_test(self):
+        # record loss history
+        train_loss_list = []
+        test_loss_list = []
+
+        # Initialize Averagers
+        train_loss_hist = Averager()
+        test_loss_hist = Averager()
+
+        # initialize SaveBestModel
+        save_best_model = SaveBestModel()
+
         train_ds = get_train_dataset(self.batch_size)
         test_ds = get_test_dataset(self.batch_size)
         
@@ -61,18 +73,28 @@ class ModelRunner:
         self.loss_func = maskrcnn_loss
 
         for epoch in range(1, EPOCHS + 1):
-            train_epoch(epoch, train_ds, self.model, self.optimizer, self.loss_func)
+            # reset the training and validation loss histories for the current epoch
+            train_loss_hist.reset()
+            test_loss_hist.reset()
 
+            train_loss_list = train_epoch(epoch, train_ds, self.model, self.optimizer, train_loss_list, train_loss_hist)
+
+            print(f"Epoch #{epoch+1} train loss: {train_loss_hist.value:.3f}")  
             # do metrics measurement here
 
-            test_epoch(epoch, test_ds, self.model, self.loss_func)
-
+            test_loss_list = test_epoch(epoch, test_ds, self.model, test_loss_list, test_loss_hist)
+ 
+            print(f"Epoch #{epoch+1} test loss: {test_loss_hist.value:.3f}")   
             # do metrics measurements here
             # IOU
 
 
             # save best model
-            torch.save(self.model.state_dict(), "custom_faster_rcnn_model.pt")
+            save_best_model(
+                test_loss_hist.value, epoch, self.model, self.optimizer
+            )
+            # save loss plot
+            save_loss_plot(train_loss_list, test_loss_list)
 
 
 # call model and return results

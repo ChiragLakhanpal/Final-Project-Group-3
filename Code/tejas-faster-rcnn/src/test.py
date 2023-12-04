@@ -31,7 +31,7 @@ def get_test_dataset(batch_size=100):
     return test_generator
 
 
-def test_epoch(epoch, test_data, model, loss_func):
+def test_epoch(epoch, test_data, model, loss_list, loss_hist):
     # set model to evaluation mode
     model.eval()
 
@@ -42,11 +42,20 @@ def test_epoch(epoch, test_data, model, loss_func):
                 images = list(image.to(DEVICE) for image in images)
                 targets = [{k: v.to(DEVICE) for k, v in t.items()} for t in targets]
 
-                # model produces category and and mask vectors
-                output = model(images)
+                # model produces loss dictionary
+                loss_dict = model(images)
+                losses = sum(loss for loss in loss_dict.values())
+                loss_value = losses.item()
+
+                # add to loss history list
+                loss_list.append(loss_value)
+                # send to Averager 
+                loss_hist.send(loss_value)
 
                 # calculate loss for categories and segmentation masks
-                loss = loss_func(output, targets)
+                # loss = loss_func(output, targets)
 
                 pbar.update(1)
-                pbar.set_postfix_str("Test Loss: {:.5f}".format(loss / (idx + 1)))
+                pbar.set_postfix_str(f"Test Loss: {loss_value:.4f}")
+    
+    return loss_list

@@ -14,7 +14,7 @@ def get_train_dataset(batch_size: int=100):
     train_transforms = v2.Compose([
         v2.ToImage(),
         v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
-        v2.SanitizeBoundingBoxes(),
+        # v2.SanitizeBoundingBoxes(),
         v2.ToDtype(torch.float32, scale=True),
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -35,7 +35,7 @@ def get_train_dataset(batch_size: int=100):
 
     return training_generator
 
-def train_epoch(epoch, train_data, model, optimizer, criterion):
+def train_epoch(epoch, train_data, model, optimizer, loss_list, loss_hist):
     # set model into training mode
     model.train()
 
@@ -43,25 +43,32 @@ def train_epoch(epoch, train_data, model, optimizer, criterion):
     with torch.set_grad_enabled(True):
         with tqdm(total=len(train_data), desc=f"Epoch {epoch}") as pbar:
             for idx, (images, targets) in enumerate(train_data):
-                images = list(image.to(DEVICE) for image in images)
+                images = [image.to(DEVICE) for image in images]
                 targets = [{k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]
 
-                # model produces category and and mask vectors
-                output = model(images, targets)
+                # model produces a loss dictionary
+                loss_dict = model(images, targets)
                 
                 # calculate loss for categories and segmentation masks
-                loss = criterion(output, targets)
+                losses = sum(loss for loss in loss_dict.values())
+                loss_value = losses.item()
+                
+                # add to loss history list
+                loss_list.append(loss_value)
+                # send to Averager 
+                loss_hist.send(loss_value)
 
                 # zero gradients
                 optimizer.zero_grad(set_to_none=True)
                 # backpropogation
-                loss.backward()
+                # loss.backward()
+                losses.backward()
                 # clip the gradients to prevent exploding gradients
                 nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIPPING)
                 # update weights
                 optimizer.step()
 
                 pbar.update(1)
-                pbar.set_postfix_str("Train Loss: {:.5f}".format(loss / (idx + 1)))
-
-
+                pbar.set_postfix_str(f"Train Loss: {loss_value:.4f}")
+    
+    return loss_list
