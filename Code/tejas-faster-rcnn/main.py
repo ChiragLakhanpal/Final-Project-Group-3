@@ -3,15 +3,14 @@ from functools import cache
 import json
 
 from src.config import *
-# from src.inference import ModelInference
-from src.model import get_model_instance_segmentation, get_model_object_detection, set_optimizer, set_scheduler
+from src.inference import ModelInference
+from src.model import get_model_object_detection, set_optimizer, set_scheduler
 from src.train import get_train_dataset, train_epoch
 from src.test import get_test_dataset, test_epoch
 from src.utils import Averager, SaveBestModel, save_loss_plot
 
 from pycocotools.coco import COCO
-import torch
-from torchvision.models.detection.roi_heads import maskrcnn_loss
+# from torchvision.models.detection.roi_heads import maskrcnn_loss
 
 class Phase(Enum):
     TRAIN = "train"
@@ -71,7 +70,7 @@ class ModelRunner:
         self.model = get_model_object_detection()
         self.optimizer = set_optimizer(self.model)
         self.scheduler = set_scheduler(self.optimizer)
-        self.loss_func = maskrcnn_loss
+        # self.loss_func = maskrcnn_loss
 
         for epoch in range(1, EPOCHS + 1):
             # reset the training and validation loss histories for the current epoch
@@ -81,14 +80,15 @@ class ModelRunner:
             train_loss_list = train_epoch(epoch, train_ds, self.model, self.optimizer, train_loss_list, train_loss_hist)
 
             print(f"Epoch #{epoch+1} train loss: {train_loss_hist.value:.3f}")  
-            # do metrics measurement here
+            # do metrics measurement here: IOU, AP:IOU > 0.5
+
+            # update learning rate
+            self.scheduler.step()
 
             test_loss_list = test_epoch(epoch, test_ds, self.model, test_loss_list, test_loss_hist)
  
             print(f"Epoch #{epoch+1} test loss: {test_loss_hist.value:.3f}")   
-            # do metrics measurements here
-            # IOU
-
+            # do metrics measurements here: : IOU, AP:IOU > 0.5
 
             # save best model
             save_best_model(
@@ -100,5 +100,5 @@ class ModelRunner:
 
 # call model and return results
 runner = ModelRunner(batch_size=BATCH_SIZE)
-# inference = ModelInference()
+inference = ModelInference()
 results = runner.train_and_test()

@@ -73,8 +73,10 @@ def get_model_instance_segmentation():
     return model
 
 def set_optimizer(model):
+    params = [p for p in model.parameters() if p.requires_grad]
+    
     return torch.optim.SGD(
-        model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY,
+        params, lr=LEARNING_RATE, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY,
     )
 
 def set_scheduler(optimizer):

@@ -5,13 +5,13 @@ import numpy as np
 import torch
 
 
-# Data paths
+# Data and directory paths
 ROOT_DIR = "/home/ubuntu/Final-Project/Final-Project-Group-3"
+OUTPUT_DIR = os.path.join(ROOT_DIR, "Code/tejas-faster-rcnn/output")
 TRAIN_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/train/images")
 TRAIN_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/train/annotations.json")
 TEST_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/test/images")
 TEST_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/test/annotations.json")
-OUTPUT_DIR = os.path.join(ROOT_DIR, "Code/tejas-faster-rcnn/output")
 
 # image config
 CHANNELS = 3
@@ -49,4 +49,4 @@ random.seed(SEED)
 
 
 # random color map
-COLORS = np.random.uniform(0, 255, size=(len(NUM_CLASSES), 3))
+COLORS = np.random.uniform(0, 255, size=(NUM_CLASSES, 3))

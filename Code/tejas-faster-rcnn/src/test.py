@@ -35,30 +35,28 @@ def get_test_dataset(batch_size=100):
 
 
 def test_epoch(epoch, test_data, model, loss_list, loss_hist):
-    # set model to evaluation mode
-    model.eval()
-
     # disable gradient calculation
-    with torch.set_grad_enabled(False):
-        with tqdm(total=len(test_data), desc=f"Epoch {epoch}") as pbar:
-            for idx, (images, targets) in enumerate(test_data):
-                images = list(image.to(DEVICE) for image in images)
-                targets = [{k: v.to(DEVICE) for k, v in t.items()} for t in targets]
+    with tqdm(total=len(test_data), desc=f"Epoch {epoch}") as pbar:
+        for idx, (images, targets) in enumerate(test_data):
+            images = list(image.to(DEVICE) for image in images)
+            targets = [{k: v.to(DEVICE) for k, v in t.items()} for t in targets]
 
+            with torch.set_grad_enabled(False):
                 # model produces loss dictionary
                 loss_dict = model(images)
-                losses = sum(loss for loss in loss_dict.values())
-                loss_value = losses.item()
+            
+            losses = sum(loss for loss in loss_dict.values())
+            loss_value = losses.item()
 
-                # add to loss history list
-                loss_list.append(loss_value)
-                # send to Averager 
-                loss_hist.send(loss_value)
+            # add to loss history list
+            loss_list.append(loss_value)
+            # send to Averager 
+            loss_hist.send(loss_value)
 
-                # calculate loss for categories and segmentation masks
-                # loss = loss_func(output, targets)
+            # calculate loss for categories and segmentation masks
+            # loss = loss_func(output, targets)
 
-                pbar.update(1)
-                pbar.set_postfix_str(f"Test Loss: {loss_value:.4f}")
+            pbar.update(1)
+            pbar.set_postfix_str(f"Test Loss: {loss_value:.4f}")
     
     return loss_list
