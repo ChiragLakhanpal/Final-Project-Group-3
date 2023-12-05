@@ -14,6 +14,7 @@ from detectron2.data.datasets import register_coco_instances
 from detectron2.data import DatasetCatalog
 from PIL import Image
 from ultralytics import YOLO
+import torch
 import json
 import re
 import pandas as pd
@@ -24,6 +25,8 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import random
+
+PROJECT_ROOT = "/home/ubuntu/Final-Project/Final-Project-Group-3"
 
 cfg = get_cfg()
 
@@ -171,7 +174,23 @@ def yolo_predict(image_path): #class_to_category
     #
     # return formatted_names
     return name_list
+
+def faster_rcnn_predict(img_path, annotations, categories):
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    checkpoint = torch.load(
+        os.path.join(PROJECT_ROOT, "best_fasterrcnn_model.pt"), map_location=device
+    )
+    fasterrcnn_predictor = Predictor(categories, annotations)
+    image, names = faster_rcnn_predictor(img_path, checkpoint)
     
+    # dispaly annotated image
+    st.image(image, caption='Detected Image.', use_column_width=True)
+
+    # predicted category names
+    return [format_names(name) for name in names]
+
+
+
 def save_uploaded_file(uploaded_file):
     try:
         temp_dir = tempfile.mkdtemp()  
@@ -231,7 +250,7 @@ def main():
                 elif model_choice == "Detectron":
                     detected_items = predict_and_visualize(image_path, predictor, metadata, class_to_category, annotations)
                 elif model_choice == "Custom":
-                    detected_items = custom_predict(image_path)
+                    detected_items = faster_rcnn_predict(image_path, annotations, class_to_category)
 
                 st.write("## Detected Items")
                 # display the detected items through st.write.
