@@ -25,6 +25,7 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import random
+from .fastercnn_predictor import Predictor
 
 PROJECT_ROOT = "/home/ubuntu/Final-Project/Final-Project-Group-3"
 
@@ -181,15 +182,13 @@ def faster_rcnn_predict(img_path, annotations, categories):
         os.path.join(PROJECT_ROOT, "best_fasterrcnn_model.pt"), map_location=device
     )
     fasterrcnn_predictor = Predictor(categories, annotations)
-    image, names = faster_rcnn_predictor(img_path, checkpoint)
+    image, names = fasterrcnn_predictor(img_path, checkpoint)
     
     # dispaly annotated image
     st.image(image, caption='Detected Image.', use_column_width=True)
 
     # predicted category names
     return [format_names(name) for name in names]
-
-
 
 def save_uploaded_file(uploaded_file):
     try:
