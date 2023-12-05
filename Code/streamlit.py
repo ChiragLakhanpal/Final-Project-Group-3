@@ -152,16 +152,25 @@ def yolo_predict(image_path): #class_to_category
         #im.save('results.jpg')  # save image
 
     st.image(im, caption='Detected Image.', use_column_width=True)
+    name_list  =[]
+    for r in results:
+
+        boxes = r.boxes
+        for box in boxes:
+            c = box.cls
+            val = model.names[int(c)]
+            if val not in name_list:
+                name_list.append(val)
 
     # classes = outputs["instances"].pred_classes.cpu().numpy()
-    #
+    #print(name_list)
     # category_id = list(set(class_to_category.get(str(i)) for i in classes))
     # class_names = [category["name"] for category_id in category_id for category in annotations["categories"] if
     #                category["id"] == category_id]
     # formatted_names = [format_names(name) for name in class_names]
     #
     # return formatted_names
-    #  
+    return name_list
     
 def save_uploaded_file(uploaded_file):
     try:
