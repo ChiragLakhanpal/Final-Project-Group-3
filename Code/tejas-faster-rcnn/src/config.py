@@ -20,7 +20,7 @@ NUM_CLASSES = 323
 
 #### Hyperparameters ####
 # detection threshold
-THRESHOLD = 0.6
+THRESHOLD = 0.5
 # Drouput layer value
 DROPOUT = 0.4
 # batch size for training

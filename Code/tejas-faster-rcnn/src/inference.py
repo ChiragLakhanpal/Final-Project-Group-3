@@ -35,64 +35,66 @@ def get_test_dataset(batch_size=100):
 class ModelInference:
     def __init__(self, iouType="bbox"):    
         self.iou_type = iouType
+        self.model = get_model_object_detection()
+        self.test_data_loader = get_test_dataset(BATCH_SIZE)
+        self.coco_gt = COCO(TEST_ANNOTATIONS_PATH)
+        self.coco_eval = COCOeval(self.coco_gt, iouType=self.iou_type)
 
     def run(self):
-        model = get_model_object_detection()
-        test_data_loader = get_test_dataset(BATCH_SIZE)
-        coco_gt = COCO(TEST_ANNOTATIONS_PATH)
-        coco_eval = COCOeval(coco_gt, iouType=self.iou_type)
         image_ids = []
         
         # load checkpoint
         checkpoint = torch.load(os.path.join(OUTPUT_DIR, "best_fasterrcnn_model.pt"), map_location=DEVICE)
-        model.load_state_dict(checkpoint)
+        self.model.load_state_dict(checkpoint)
         
         # put model into evaluation mode
-        model.eval()
+        self.model.eval()
 
-        for images, targets in test_data_loader:
+        for images, targets in self.test_data_loader:
             with torch.no_grad():
                 images = [image.to(DEVICE) for image in images]
 
                 # model produces predictions
-                predictions = model(images)
+                predictions = self.model(images)
                 
                 # detach and convert predictions to COCO format
                 results = self.prepare_coco_results(predictions, targets)
 
-                image_ids.extend([]) # extend with image ids
+                image_ids.extend([result["image_id"] for result in results]) # extend with image ids
 
                 # update COCOeval with current batch
-                coco_dt = COCO.loadRes(coco_gt, results) if results else COCO()
-                coco_eval.cocoDt = coco_dt
-                coco_eval.params.imgIds = list(image_ids)
-                # self.coco_eval.evaluate()
-                # self.coco_eval.accumulate()
+                coco_dt = COCO.loadRes(self.coco_gt, results) if results else COCO()
+                self.coco_eval.cocoDt = coco_dt
+                self.coco_eval.params.imgIds = image_ids
 
         # Summarize and print results
-        coco_eval.evaluate()
-        coco_eval.accumulate()
-        stats = coco_eval.summarize()
+        self.coco_eval.evaluate()
+        self.coco_eval.accumulate()
+        self.coco_eval.summarize()
 
-        return coco_eval, stats
+        return self.coco_eval
 
     def prepare_coco_results(self, predictions, targets):
         coco_predictions = []
 
         for idx, prediction in enumerate(predictions):
             image_id = targets[idx]["image_id"].item()
-            boxes = prediction["boxes"]
-            boxes = self.convert_to_xywh(boxes)
+
+            # convert bounding boxes to COCO format
+            boxes = self.convert_to_xywh(prediction["boxes"])
+            boxes = boxes.cpu().numpy()
+
             scores = prediction["scores"].cpu().numpy()
             labels = prediction["labels"].cpu().numpy()
 
             for box, score, label in zip(boxes, scores, labels):
-                coco_predictions.append({
-                    "image_id": image_id,
-                    "category_id": int(label),
-                    "bbox": [float(coord) for coord in box],
-                    "score": float(score),
-                })
+                if score >= THRESHOLD:
+                    coco_predictions.append({
+                        "image_id": image_id,
+                        "category_id": int(label),
+                        "bbox": [float(coord) for coord in box],
+                        "score": float(score),
+                    })
         
         return coco_predictions
     

@@ -102,5 +102,4 @@ class ModelRunner:
 # runner = ModelRunner(batch_size=BATCH_SIZE)
 # results = runner.train_and_test()
 inference = ModelInference()
-evaluator, stats = inference.run()
-print(stats)
+evaluator = inference.run()
