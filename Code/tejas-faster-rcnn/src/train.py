@@ -28,11 +28,6 @@ def get_train_dataset(batch_size: int=100):
         "num_workers": NUM_WORKERS
     }
 
-    # training_dataset = datasets.CocoDetection(TRAIN_IMAGES_DIR, TRAIN_ANNOTATIONS_PATH, transforms=train_transforms)
-
-    #  make dataset compatible with transforms
-    # training_dataset = datasets.wrap_dataset_for_transforms_v2(training_dataset, target_keys=["boxes", "labels", "masks"])
-
     training_dataset = CustomCocoDataset(TRAIN_ANNOTATIONS_PATH, TRAIN_IMAGES_DIR, transforms=train_transforms)
     training_generator = data.DataLoader(training_dataset, **train_params)
 
@@ -64,7 +59,6 @@ def train_epoch(epoch, train_data, model, optimizer, loss_list, loss_hist):
                 # zero gradients
                 optimizer.zero_grad(set_to_none=True)
                 # backpropogation
-                # loss.backward()
                 losses.backward()
                 # clip the gradients to prevent exploding gradients
                 nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIPPING)

@@ -15,12 +15,12 @@ def get_model_object_detection():
     )
 
     # freeze all layers
-    for param in model.parameters():
-        param.requires_grad = False
+    # for param in model.parameters():
+    #     param.requires_grad = False
         
     # unfreeze last 50% of layers for training
     max_index_param = len(list(model.parameters())) - 1
-    unfreeze_from = int(0.8 * max_index_param) - 1
+    unfreeze_from = int(0.5 * max_index_param) - 1
     for i, param in enumerate(model.parameters()):
         if i >= unfreeze_from and i < max_index_param: 
             param.requires_grad = True
@@ -94,7 +94,7 @@ def set_optimizer(model):
 
 def set_scheduler(optimizer):
     return torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=3, gamma=0.1, verbose=True
+        optimizer, step_size=5, gamma=0.1, verbose=True
     )
 
 def save_model_summary(model: nn.Module, name: str):

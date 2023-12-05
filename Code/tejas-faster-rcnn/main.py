@@ -65,8 +65,7 @@ class ModelRunner:
 
         train_ds = get_train_dataset(self.batch_size)
         test_ds = get_test_dataset(self.batch_size)
-        
-        # self.model = get_model_instance_segmentation()
+
         model = get_model_object_detection()
         optimizer = set_optimizer(model)
         scheduler = set_scheduler(optimizer)
@@ -99,7 +98,7 @@ class ModelRunner:
 
 
 # call model and return results
-# runner = ModelRunner(batch_size=BATCH_SIZE)
-# results = runner.train_and_test()
+runner = ModelRunner(batch_size=BATCH_SIZE)
+results = runner.train_and_test()
 inference = ModelInference()
 evaluator = inference.run()
