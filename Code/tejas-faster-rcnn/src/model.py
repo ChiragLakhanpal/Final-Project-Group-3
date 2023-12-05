@@ -3,14 +3,27 @@ from .config import *
 import torch
 import torch.nn as nn
 import torchvision
-from torchvision.models.detection import FasterRCNN
+from torchvision.models.detection import FasterRCNN, FasterRCNN_MobileNet_V3_Large_FPN_Weights, fasterrcnn_mobilenet_v3_large_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 def get_model_object_detection():
     # load a model pre-trained on COCO
-    model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(weights="DEFAULT")
+    model = fasterrcnn_mobilenet_v3_large_fpn(
+        weights=FasterRCNN_MobileNet_V3_Large_FPN_Weights.COCO_V1
+    )
+
+    # freeze all layers
+    for param in model.parameters():
+        param.requires_grad = False
+        
+    # unfreeze last 50% of layers for training
+    max_index_param = len(list(model.parameters())) - 1
+    unfreeze_from = int(0.8 * max_index_param) - 1
+    for i, param in enumerate(model.parameters()):
+        if i >= unfreeze_from and i < max_index_param: 
+            param.requires_grad = True
 
     # replace the classifier with a new one, that has get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features

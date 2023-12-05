@@ -46,14 +46,17 @@ class SaveBestModel:
             self.best_valid_loss = current_valid_loss
             print(f"\nBest test loss: {self.best_valid_loss}")
             print(f"\nSaving best model for epoch: {epoch}\n")
-            torch.save(model.state_dict(),
-                # {
-                    # 'epoch': epoch,
-                    # 'model_state_dict': ,
-                    # 'optimizer_state_dict': optimizer.state_dict(),
-                # },
-                f"{OUTPUT_DIR}/best_model.pt"
-            )
+            # torch.save(model.state_dict(),
+            #     # {
+            #         # 'epoch': epoch,
+            #         # 'model_state_dict': ,
+            #         # 'optimizer_state_dict': optimizer.state_dict(),
+            #     # },
+            #     f"{OUTPUT_DIR}/best_model.pt"
+            # )
+            torch.save(model.state_dict(), f"{OUTPUT_DIR}/best_fasterrcnn_model.pt")
+            
+
 
 def collate_fn(batch):
     """

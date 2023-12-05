@@ -64,13 +64,15 @@ class CustomCocoDataset(data.Dataset):
         image = np.transpose(image, (2, 0, 1))
         image = torch.FloatTensor(image)
 
+        # perform transformations on image
         if self.transforms:
             image = self.transforms(image)
 
         annotations_target = {
             "image_id": torch.as_tensor(image_id, dtype=torch.int64),
             "labels": torch.as_tensor(labels, dtype=torch.int64),
-            "boxes": tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=F.get_size(image)),
+            # "boxes": tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=F.get_size(image)),
+            "boxes": torch.as_tensor(boxes, dtype=torch.float32),
             # "masks": tv_tensors.Mask(annotations_data["masks"]),
             "iscrowd": torch.as_tensor(is_crowd, dtype=torch.int64)
         }
@@ -102,5 +104,11 @@ class CustomCocoDataset(data.Dataset):
         [xmin, ymin, width, height] = bbox
         xmax = xmin + width
         ymax = ymin + height
+
+        # resize the bounding boxes according to image size
+        xmin = (xmin/IMAGE_SIZE) * IMAGE_SIZE
+        xmax = (xmax/IMAGE_SIZE) * IMAGE_SIZE
+        ymin = (ymin/IMAGE_SIZE) * IMAGE_SIZE
+        ymax = (ymax/IMAGE_SIZE) * IMAGE_SIZE
 
         return [xmin, ymin, xmax, ymax]

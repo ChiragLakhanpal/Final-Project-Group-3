@@ -15,26 +15,26 @@ TEST_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/test/annotations.json")
 
 # image config
 CHANNELS = 3
-IMAGE_SIZE = 512
-NUM_CLASSES = 273
+IMAGE_SIZE = 256
+NUM_CLASSES = 323
 
 #### Hyperparameters ####
 # detection threshold
-THRESHOLD = 0.75
+THRESHOLD = 0.6
 # Drouput layer value
 DROPOUT = 0.4
 # batch size for training
 BATCH_SIZE = 16
 # learning rate for the optimizer
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-3
 # momentum for the optimizer
-MOMENTUM = 0.99
+MOMENTUM = 0.9
 # gradient clipping value (for stability while training)
 GRADIENT_CLIPPING = 1.0
 # weight decay (L2 regularization) for the optimizer
-WEIGHT_DECAY = 1e-6
+WEIGHT_DECAY = 1e-5
 # number of epochs for training
-EPOCHS = 10
+EPOCHS = 3
 
 # cuda config
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'

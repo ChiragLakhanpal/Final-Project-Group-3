@@ -67,9 +67,9 @@ class ModelRunner:
         test_ds = get_test_dataset(self.batch_size)
         
         # self.model = get_model_instance_segmentation()
-        self.model = get_model_object_detection()
-        self.optimizer = set_optimizer(self.model)
-        self.scheduler = set_scheduler(self.optimizer)
+        model = get_model_object_detection()
+        optimizer = set_optimizer(model)
+        scheduler = set_scheduler(optimizer)
         # self.loss_func = maskrcnn_loss
 
         for epoch in range(1, EPOCHS + 1):
@@ -77,22 +77,22 @@ class ModelRunner:
             train_loss_hist.reset()
             test_loss_hist.reset()
 
-            train_loss_list = train_epoch(epoch, train_ds, self.model, self.optimizer, train_loss_list, train_loss_hist)
+            train_loss_list = train_epoch(epoch, train_ds, model, optimizer, train_loss_list, train_loss_hist)
 
             print(f"Epoch #{epoch} train loss: {train_loss_hist.value:.3f}")  
             # do metrics measurement here: IOU, AP:IOU > 0.5
 
             # update learning rate
-            self.scheduler.step()
+            scheduler.step()
 
-            test_loss_list = test_epoch(epoch, test_ds, self.model, test_loss_list, test_loss_hist)
+            test_loss_list = test_epoch(epoch, test_ds, model, test_loss_list, test_loss_hist)
  
             print(f"Epoch #{epoch} test loss: {test_loss_hist.value:.3f}")   
             # do metrics measurements here: : IOU, AP:IOU > 0.5
 
             # save best model
             save_best_model(
-                test_loss_hist.value, epoch, self.model, self.optimizer
+                test_loss_hist.value, epoch, model, optimizer
             )
             # save loss plot
             save_loss_plot(train_loss_list, test_loss_list)
@@ -103,4 +103,4 @@ class ModelRunner:
 # results = runner.train_and_test()
 inference = ModelInference()
 evaluator, stats = inference.run()
-stats
+print(stats)

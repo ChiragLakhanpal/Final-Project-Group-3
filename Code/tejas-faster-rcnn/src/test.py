@@ -38,7 +38,7 @@ def get_test_dataset(batch_size=100):
 def test_epoch(epoch, test_data, model, loss_list, loss_hist):
     with tqdm(total=len(test_data), desc=f"Test Epoch {epoch}") as pbar:
         for idx, (images, targets) in enumerate(test_data):
-            images = list(image.to(DEVICE) for image in images)
+            images = [image.to(DEVICE) for image in images]
             targets = [{k: v.to(DEVICE) for k, v in t.items()} for t in targets]
 
             # disable gradient calculation

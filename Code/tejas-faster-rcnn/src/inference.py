@@ -38,45 +38,51 @@ class ModelInference:
 
     def run(self):
         model = get_model_object_detection()
-        test_data = get_test_dataset(BATCH_SIZE)
-        coco_gt = self.data.dataset.coco_annotations
-        coco_eval = COCOeval(self.coco_gt, iouType=self.iouType)
+        test_data_loader = get_test_dataset(BATCH_SIZE)
+        coco_gt = COCO(TEST_ANNOTATIONS_PATH)
+        coco_eval = COCOeval(coco_gt, iouType=self.iou_type)
+        image_ids = []
+        
         # load checkpoint
-        checkpoint = torch.load(os.path.join(OUTPUT_DIR, "best_model.pt"), map_location=DEVICE)
-        model.load_state_dict(checkpoint["model_state_dict"])
+        checkpoint = torch.load(os.path.join(OUTPUT_DIR, "best_fasterrcnn_model.pt"), map_location=DEVICE)
+        model.load_state_dict(checkpoint)
+        
         # put model into evaluation mode
         model.eval()
 
-        for images, targets in test_data:
-            images = list(image.to(DEVICE) for image in images)
-            # targets = [{k: v.to(DEVICE) for k, v in t.items()} for t in targets]
-
+        for images, targets in test_data_loader:
             with torch.no_grad():
-                # model produces bbox, labels, and scores
-                predictions = model(images)
-            
-            # detach and convert predictions to COCO format
-            results = self.coco_predictions(predictions, targets)
+                images = [image.to(DEVICE) for image in images]
 
-            # update COCOeval with current batch
-            coco_dt = COCO.loadRes(coco_gt, results) if results else COCO()
-            coco_eval.cocoDt = coco_dt
-            # self.coco_eval.evaluate()
-            # self.coco_eval.accumulate()
+                # model produces predictions
+                predictions = model(images)
+                
+                # detach and convert predictions to COCO format
+                results = self.prepare_coco_results(predictions, targets)
+
+                image_ids.extend([]) # extend with image ids
+
+                # update COCOeval with current batch
+                coco_dt = COCO.loadRes(coco_gt, results) if results else COCO()
+                coco_eval.cocoDt = coco_dt
+                coco_eval.params.imgIds = list(image_ids)
+                # self.coco_eval.evaluate()
+                # self.coco_eval.accumulate()
 
         # Summarize and print results
+        coco_eval.evaluate()
         coco_eval.accumulate()
         stats = coco_eval.summarize()
 
         return coco_eval, stats
 
-    def coco_predictions(self, predictions, targets):
+    def prepare_coco_results(self, predictions, targets):
         coco_predictions = []
 
-        for i in range(len(predictions)):
-            prediction = predictions[i]
-            image_id = targets[i]["image_id"].item()
-            boxes = prediction["boxes"].cpu().numpy()
+        for idx, prediction in enumerate(predictions):
+            image_id = targets[idx]["image_id"].item()
+            boxes = prediction["boxes"]
+            boxes = self.convert_to_xywh(boxes)
             scores = prediction["scores"].cpu().numpy()
             labels = prediction["labels"].cpu().numpy()
 
