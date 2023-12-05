@@ -12,6 +12,8 @@ from detectron2.engine import DefaultPredictor
 from detectron2 import model_zoo
 from detectron2.data.datasets import register_coco_instances
 from detectron2.data import DatasetCatalog
+from PIL import Image
+from ultralytics import YOLO
 import json
 import re
 import pandas as pd
@@ -120,7 +122,46 @@ def predict_and_visualize(image_path, predictor, metadata,class_to_category, ann
     formatted_names = [format_names(name) for name in class_names]
 
 
-    return formatted_names    
+    return formatted_names   
+
+def yolo_predict(image_path): #class_to_category
+    if not os.path.isfile(image_path):
+        print(f"File not found: {image_path}")
+        return []
+
+    img = cv2.imread(image_path)
+    if img is None:
+        print(f"Could not read the image file {image_path}")
+        return []
+
+    # outputs = predictor(img)
+    #
+    # v = Visualizer(img[:, :, ::-1], metadata=metadata, scale=1.0)
+    # out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+    # annotated_img = cv2.cvtColor(out.get_image()[:, :, ::-1], cv2.COLOR_BGR2RGB)
+    #
+    model = YOLO('best.pt')
+
+    results = model(image_path,show = True,save = True,hide_labels = True, hide_conf = True,conf = 0.1,save_txt = True,save_crop = False,line_thickness = 2)  # results list
+
+    # Show the results
+    for r in results:
+        im_array = r.plot()  # plot a BGR numpy array of predictions
+        im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
+        #im.show()  # show image
+        #im.save('results.jpg')  # save image
+
+    st.image(im, caption='Detected Image.', use_column_width=True)
+
+    # classes = outputs["instances"].pred_classes.cpu().numpy()
+    #
+    # category_id = list(set(class_to_category.get(str(i)) for i in classes))
+    # class_names = [category["name"] for category_id in category_id for category in annotations["categories"] if
+    #                category["id"] == category_id]
+    # formatted_names = [format_names(name) for name in class_names]
+    #
+    # return formatted_names
+    #  
     
 def save_uploaded_file(uploaded_file):
     try:
