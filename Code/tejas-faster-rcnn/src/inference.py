@@ -33,8 +33,9 @@ def get_test_dataset(batch_size=100):
 
 
 class ModelInference:
-    def __init__(self, iouType="bbox"):    
+    def __init__(self, categories_map, iouType="bbox"):    
         self.iou_type = iouType
+        self.categories_map = categories_map
         self.model = get_model_object_detection()
         self.test_data_loader = get_test_dataset(BATCH_SIZE)
         self.coco_gt = COCO(TEST_ANNOTATIONS_PATH)
@@ -66,9 +67,9 @@ class ModelInference:
                 coco_dt = COCO.loadRes(self.coco_gt, results) if results else COCO()
                 self.coco_eval.cocoDt = coco_dt
                 self.coco_eval.params.imgIds = image_ids
+                self.coco_eval.evaluate()
 
         # Summarize and print results
-        self.coco_eval.evaluate()
         self.coco_eval.accumulate()
         self.coco_eval.summarize()
 
@@ -88,13 +89,14 @@ class ModelInference:
             labels = prediction["labels"].cpu().numpy()
 
             for box, score, label in zip(boxes, scores, labels):
-                if score >= THRESHOLD:
-                    coco_predictions.append({
-                        "image_id": image_id,
-                        "category_id": int(label),
-                        "bbox": [float(coord) for coord in box],
-                        "score": float(score),
-                    })
+                # if score >= THRESHOLD:
+                category_id = self.categories_map.get(str(label))
+                coco_predictions.append({
+                    "image_id": image_id,
+                    "category_id": category_id,
+                    "bbox": [float(coord) for coord in box],
+                    "score": float(score),
+                })
         
         return coco_predictions
     

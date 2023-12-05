@@ -34,7 +34,7 @@ GRADIENT_CLIPPING = 1.0
 # weight decay (L2 regularization) for the optimizer
 WEIGHT_DECAY = 1e-5
 # number of epochs for training
-EPOCHS = 25
+EPOCHS = 20
 
 # cuda config
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
