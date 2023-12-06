@@ -254,8 +254,18 @@ def main():
                         st.write(f"No nutrition data available for {item}")
 
 
-    with tab2:
-        st.write("## Presentation")
+        with tab2:
+            st.write("## Presentation")
+
+            # Read the PowerPoint file into a bytes object
+            with open("/home/ec2-user/Final-Project-Group-3/Code/data/Final Deep Learning Presenataion.pptx", "rb") as file:
+                pptx_bytes = file.read()
+
+            # Use the correct MIME type for a PowerPoint file
+            st.download_button(label="Download Presentation", 
+                            data=pptx_bytes, 
+                            file_name="Final Deep Learning Presentation.pptx", 
+                            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation")
 
 
     with tab3:
