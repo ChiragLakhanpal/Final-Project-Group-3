@@ -28,7 +28,7 @@ from fastercnn_predictor import Predictor
 import torch
 import os
 import requests
-
+import argparse
 def download_model(url, save_path):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     response = requests.get(url)
@@ -169,25 +169,30 @@ def yolo_predict(image_path):
 
     return name_list
 
-def main():
-    inject_custom_css()
-    
-    if os.path.isfile('class_to_category.json') and os.path.isfile("data/train/annotations.json"):
-        with open('class_to_category.json') as f:
+def load_json_data(class_to_category_path, annotations_json_path):
+    if os.path.isfile(class_to_category_path) and os.path.isfile(annotations_json_path):
+        with open(class_to_category_path) as f:
             class_to_category = json.load(f)
-        with open("data/train/annotations.json") as f:
+        with open(annotations_json_path) as f:
             annotations_data = json.load(f)
     else:
         class_to_category = {}
         annotations_data = {"images": [], "annotations": [], "categories": []}
-            
-    if os.path.isfile('class_to_category.json') and os.path.isfile("data/train/annotations.json"):
-        with open('class_to_category.json') as f:
-            class_to_category = json.load(f)
-        with open("data/train/annotations.json") as f:
-            annotations = json.load(f)
-    else:
-        class_to_category = {}    
+    
+    return class_to_category, annotations_data
+
+def main():
+    inject_custom_css()
+
+    parser = argparse.ArgumentParser(description="Your script description")
+    parser.add_argument("--class_to_category", help="Path to the class_to_category.json file", type=str, required=True)
+    parser.add_argument("--annotations_json", help="Path to the annotations.json file", type=str, required=True)
+
+    args = parser.parse_args()
+
+        
+    class_to_category, annotations = load_json_data(args.class_to_category, args.annotations_json)
+
         
     tab1, tab2, tab3, tab4 = st.tabs(["Demo", "Presentation", "Explanatory Data Analysis", "Connect with Us"])
 
@@ -225,7 +230,6 @@ def main():
                     detected_items = faster_rcnn_predict(image_path, annotations, class_to_category)
 
                 st.write("## Detected Items")
-                # display the detected items through st.write.
                 st.write(f"Detected {len(detected_items)} item(s): {', '.join(detected_items)}")
 
 
@@ -250,11 +254,9 @@ def main():
         with tab2:
             st.write("## Presentation")
 
-            # Read the PowerPoint file into a bytes object
             with open("/home/ec2-user/Final-Project-Group-3/Code/data/Final Deep Learning Presenataion.pptx", "rb") as file:
                 pptx_bytes = file.read()
 
-            # Use the correct MIME type for a PowerPoint file
             st.download_button(label="Download Presentation", 
                             data=pptx_bytes, 
                             file_name="Final Deep Learning Presentation.pptx", 
@@ -265,9 +267,9 @@ def main():
         st.write("## Explanatory Data Analysis")
         st.write("### Dataset Glimpse")
 
-        categories_df = pd.DataFrame(annotations_data['categories'])
-        images_df = pd.DataFrame(annotations_data['images'])
-        annotations_df = pd.DataFrame(annotations_data['annotations'])
+        categories_df = pd.DataFrame(annotations['categories'])
+        images_df = pd.DataFrame(annotations['images'])
+        annotations_df = pd.DataFrame(annotations['annotations'])
 
         category_id_to_name = categories_df.set_index('id')['name_readable'].to_dict()
         annotations_df['category_name'] = annotations_df['category_id'].apply(lambda x: category_id_to_name.get(x, ''))
