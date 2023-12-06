@@ -52,7 +52,7 @@ You can run the training script using one of the two methods below.
 
 The Yolo model is built for 2 different tasks.
 * Object Detection
-* Image segmentation
+* Instance segmentation
 
 for training
 1. Create a directory '/home/ubuntu/term_project/data/' and place the food.yaml file in the data folder.
