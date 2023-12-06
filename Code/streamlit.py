@@ -26,48 +26,41 @@ from PIL import Image
 from ultralytics import YOLO
 from fastercnn_predictor import Predictor
 import torch
+import os
+import requests
+
+def download_model(url, save_path):
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as f:
+            f.write(response.content)
+        print(f"Model downloaded and saved to {save_path}")
+    else:
+        print(f"Failed to download the model. Status code: {response.status_code}")
+
+models = [
+    {
+        "url": "https://huggingface.co/chiraglakhanpal/Food_Detection_Models/blob/main/Model_Yolo.pt",
+        "save_path": "Models/Model_Yolo.pt"
+    },
+    {
+        "url": "https://huggingface.co/chiraglakhanpal/Food_Detection_Models/blob/main/Model_Mask_RCNN.pth",
+        "save_path": "Models/Model_Mask_RCNN.pth"
+    },
+    {
+        "url": "https://huggingface.co/chiraglakhanpal/Food_Detection_Models/blob/main/Model_Faster_RCNN.pt",
+        "save_path": "Models/Model_Faster_RCNN.pt"
+    }
+]
+
+for model in models:
+    download_model(model["url"], model["save_path"])
 
 cfg = get_cfg()
 
 metadata = MetadataCatalog.get("training_dataset")
 
-def plotly_images_with_segmentation(image_ids, annotations_data, root_dir, rows=2, cols=6):
-    category_id_to_name = {category['id']: category['name_readable'] for category in annotations_data['categories']}
-    fig = make_subplots(rows=rows, cols=cols)
-
-    for i, image_id in enumerate(image_ids, start=1):
-        img_path = os.path.join(root_dir, f"{image_id}.jpg")
-        image = cv2.imread(img_path)
-        if image is None:
-            continue
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        annotations = [ann for ann in annotations_data['annotations'] if ann['image_id'] == int(image_id)]
-        shapes = []
-        category_names = set()
-        for ann in annotations:
-            category_name = category_id_to_name.get(ann['category_id'], 'Unknown')
-            category_names.add(category_name)
-            for segmentation in ann['segmentation']:
-                points = [(segmentation[i], segmentation[i + 1]) for i in range(0, len(segmentation), 2)]
-                shapes.append({
-                    'type': 'path',
-                    'path': ' M ' + ' L '.join([f'{x} {y}' for x, y in points]) + ' Z',
-                    'line': {
-                        'color': 'blue',
-                        'width': 3,
-                    },
-                })
-
-        row, col = divmod(i-1, cols)
-        fig.add_trace(go.Image(z=image), row=row+1, col=col+1)
-        for shape in shapes:
-            fig.add_shape(shape, row=row+1, col=col+1)
-
-        fig.layout.annotations[i-1].update(text=f"Image {image_id} ({', '.join(category_names)})")
-
-    fig.update_layout(height=rows * 400, width=cols * 400, showlegend=False)
-    return fig
   
 def get_calorie_info(food_item):
     API_URL = f'https://api.api-ninjas.com/v1/nutrition?query={food_item}'
