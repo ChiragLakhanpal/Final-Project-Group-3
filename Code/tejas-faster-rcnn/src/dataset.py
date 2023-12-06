@@ -8,7 +8,6 @@ import numpy as np
 from pycocotools.coco import COCO
 import torch
 from torch.utils import data
-from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
 
 

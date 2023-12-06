@@ -3,13 +3,12 @@ from .dataset import CustomCocoDataset
 from .model import get_model_object_detection
 from .utils import collate_fn
 
-import cv2
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 import torch
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.transforms import v2
 from torch.utils import data
-
 
 def get_test_dataset(batch_size=100):
     # image transforms
@@ -36,27 +35,27 @@ class ModelInference:
     def __init__(self, categories_map, iouType="bbox"):    
         self.iou_type = iouType
         self.categories_map = categories_map
-        self.model = get_model_object_detection()
-        self.test_data_loader = get_test_dataset(BATCH_SIZE)
-        self.coco_gt = COCO(TEST_ANNOTATIONS_PATH)
-        self.coco_eval = COCOeval(self.coco_gt, iouType=self.iou_type)
 
     def run(self):
         image_ids = []
+        model = get_model_object_detection()
+        test_data_loader = get_test_dataset(BATCH_SIZE)
+        coco_gt = COCO(TEST_ANNOTATIONS_PATH)
+        coco_eval = COCOeval(coco_gt, iouType=self.iou_type)
         
         # load checkpoint
         checkpoint = torch.load(os.path.join(OUTPUT_DIR, "best_fasterrcnn_model.pt"), map_location=DEVICE)
-        self.model.load_state_dict(checkpoint)
+        model.load_state_dict(checkpoint)
         
         # put model into evaluation mode
-        self.model.eval()
+        model.eval()
 
-        for images, targets in self.test_data_loader:
+        for images, targets in test_data_loader:
             with torch.no_grad():
                 images = [image.to(DEVICE) for image in images]
 
                 # model produces predictions
-                predictions = self.model(images)
+                predictions = model(images)
                 
                 # detach and convert predictions to COCO format
                 results = self.prepare_coco_results(predictions, targets)
@@ -64,16 +63,16 @@ class ModelInference:
                 image_ids.extend([result["image_id"] for result in results]) # extend with image ids
 
                 # update COCOeval with current batch
-                coco_dt = COCO.loadRes(self.coco_gt, results) if results else COCO()
-                self.coco_eval.cocoDt = coco_dt
-                self.coco_eval.params.imgIds = image_ids
-                self.coco_eval.evaluate()
+                coco_dt = COCO.loadRes(coco_gt, results) if results else COCO()
+                coco_eval.cocoDt = coco_dt
+                coco_eval.params.imgIds = image_ids
+                coco_eval.evaluate()
 
         # Summarize and print results
-        self.coco_eval.accumulate()
-        self.coco_eval.summarize()
+        coco_eval.accumulate()
+        coco_eval.summarize()
 
-        return self.coco_eval
+        return coco_eval
 
     def prepare_coco_results(self, predictions, targets):
         coco_predictions = []
@@ -99,23 +98,6 @@ class ModelInference:
                 })
         
         return coco_predictions
-    
-    def predict_image(self, image, model):
-        image = cv2.imread(image)
-        orig_image = image.copy()
-        # BGR to RGB
-        image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB).astype(np.float32)
-        # make the pixel range between 0 and 1
-        image /= 255.0
-        # bring color channels to front
-        image = np.transpose(image, (2, 0, 1)).astype(np.float32)
-        # convert to tensor
-        image = torch.tensor(image, dtype=torch.float).cuda()
-        # add batch dimension
-        image = torch.unsqueeze(image, 0)
-
-        with torch.no_grad():
-            predictions = model(image.to(DEVICE))
     
     def convert_to_xywh(self, boxes):
         xmin, ymin, xmax, ymax = boxes.unbind(1)

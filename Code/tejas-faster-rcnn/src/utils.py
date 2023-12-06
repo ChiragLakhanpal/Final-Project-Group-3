@@ -1,7 +1,6 @@
 from .config import *
 
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
 
 
@@ -39,23 +38,15 @@ class SaveBestModel:
         self.best_valid_loss = best_valid_loss
         
     def __call__(
-        self, current_valid_loss, 
-        epoch, model, optimizer
+        self, current_valid_loss, epoch, model
     ):
         if current_valid_loss < self.best_valid_loss:
             self.best_valid_loss = current_valid_loss
             print(f"\nBest test loss: {self.best_valid_loss}")
             print(f"\nSaving best model for epoch: {epoch}\n")
-            # torch.save(model.state_dict(),
-            #     # {
-            #         # 'epoch': epoch,
-            #         # 'model_state_dict': ,
-            #         # 'optimizer_state_dict': optimizer.state_dict(),
-            #     # },
-            #     f"{OUTPUT_DIR}/best_model.pt"
-            # )
+
             torch.save(model.state_dict(), f"{OUTPUT_DIR}/best_fasterrcnn_model.pt")
-            
+            # torch.save(model.state_dict(), f"{OUTPUT_DIR}/best_fasterrcnn_resnet_model.pt")
 
 
 def collate_fn(batch):
@@ -64,7 +55,6 @@ def collate_fn(batch):
     of objects and to handle varying size tensors as well.
     """
     return tuple(zip(*batch))
-
 
 def save_loss_plot(train_loss, val_loss):
     figure_1, train_ax = plt.subplots()

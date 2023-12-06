@@ -1,20 +1,15 @@
-from enum import Enum
 from functools import cache
 import json
 
 from src.config import *
 from src.inference import ModelInference
-from src.model import get_model_object_detection, set_optimizer, set_scheduler
+from src.model import Phase, get_model_object_detection, set_optimizer, set_scheduler
 from src.train import get_train_dataset, train_epoch
 from src.test import get_test_dataset, test_epoch
 from src.utils import Averager, SaveBestModel, save_loss_plot
 
 from pycocotools.coco import COCO
 # from torchvision.models.detection.roi_heads import maskrcnn_loss
-
-class Phase(Enum):
-    TRAIN = "train"
-    TEST = "test"
 
 @cache
 def get_raw_annotations(phase):
@@ -40,13 +35,12 @@ def get_categories_map(phase: Phase):
     }
 
     # save as json
-    with open("categories_map.json", "w") as f:
+    with open(f"{OUTPUT_DIR}/{phase.value}_categories_map.json", "w") as f:
         json.dump(categories_map, f)
     
     return categories_map
 
-
-class ModelRunner:
+class ModelTrainer:
     def __init__(self, batch_size: int=100) -> None:
         self.batch_size = batch_size
         # self.model = build_model()
@@ -66,7 +60,7 @@ class ModelRunner:
         train_ds = get_train_dataset(self.batch_size)
         test_ds = get_test_dataset(self.batch_size)
 
-        model = get_model_object_detection()
+        model = get_model_object_detection(phase=Phase.TRAIN)
         optimizer = set_optimizer(model)
         scheduler = set_scheduler(optimizer)
         # self.loss_func = maskrcnn_loss
@@ -91,14 +85,15 @@ class ModelRunner:
 
             # save best model
             save_best_model(
-                test_loss_hist.value, epoch, model, optimizer
+                test_loss_hist.value, epoch, model
             )
             # save loss plot
             save_loss_plot(train_loss_list, test_loss_list)
 
 
 # call model and return results
-runner = ModelRunner(batch_size=BATCH_SIZE)
-results = runner.train_and_test()
-inference = ModelInference()
+# runner = ModelTrainer(batch_size=BATCH_SIZE)
+# results = runner.train_and_test()
+categories_map = get_categories_map(Phase.TRAIN)
+inference = ModelInference(categories_map)
 evaluator = inference.run()
