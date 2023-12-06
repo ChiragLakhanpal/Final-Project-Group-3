@@ -8,9 +8,9 @@ The goal of this challenge is to train models which can look at images of food i
 
 ## Dataset
 ### Training
-Set of 24120 (as RGB images) food images, along with their corresponding 39328 annotations in MS-COCO format
+Set of 54,392 (as RGB images) food images, along with their corresponding 100,256 annotations in MS-COCO format
 ### Test
-Set of 1269 (as RGB images) food images, along with their corresponding 2053 annotations in MS-COCO format
+Set of 946 (as RGB images) food images, along with their corresponding 1708 annotations in MS-COCO format
 
 ## Models Trained
 - [Faster R-CNN](https://arxiv.org/pdf/1506.01497.pdf)
