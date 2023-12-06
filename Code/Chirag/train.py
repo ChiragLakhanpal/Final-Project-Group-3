@@ -1,13 +1,7 @@
-
 import torch
-TORCH_VERSION = ".".join(torch.__version__.split(".")[:2])
-CUDA_VERSION = torch.__version__.split("+")[-1]
-print("torch: ", TORCH_VERSION, "; cuda: ", CUDA_VERSION)
-
 import detectron2
 from detectron2.utils.logger import setup_logger
 setup_logger()
-
 import numpy as np
 import pandas as pd
 import cv2
@@ -17,7 +11,6 @@ import subprocess
 import time
 from pathlib import Path
 from detectron2.data import transforms as T
-
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
@@ -38,8 +31,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 import detectron2.data.detection_utils as utils
 import copy
 import torch
-import numpy as np
-
 import os
 import json
 import importlib
@@ -47,33 +38,84 @@ import numpy as np
 import cv2
 import torch
 from detectron2.engine import DefaultPredictor
-
-from detectron2.evaluation import COCOEvaluator, inference_on_dataset
-from detectron2.data import build_detection_test_loader
-from detectron2.structures import Boxes, BoxMode
-from detectron2.config import get_cfg
-import pycocotools.mask as mask_util
-
 from pycocotools.coco import COCO
-
 from pprint import pprint 
 from collections import OrderedDict
-import os
-
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
+import argparse
+import glob
+from fastai.vision.core import *
+from fastai.vision.utils import *
+from fastai.vision.augment import *
+from fastai.data.core import *
+from fastai.data.transforms import *
+import tarfile
+import shutil
 
-TRAIN_ANNOTATIONS_PATH = "data/train/annotations.json"
-TRAIN_IMAGE_DIRECTIORY = "data/train/images/"
+parser = argparse.ArgumentParser(description="Process the data directory")
+parser.add_argument('--data-dir', type=str, default='data', help='Path to the data directory containing test, train, and val folders')
+args = parser.parse_args()
 
-VAL_ANNOTATIONS_PATH = "data/val/annotations.json"
-VAL_IMAGE_DIRECTIORY = "data/val/images/"
+def setup_data(data_dir):
+    if subprocess.run(['pip', 'freeze'], capture_output=True).stdout.decode().find('aicrowd-cli') == -1:
+        subprocess.run(['pip', 'install', 'aicrowd-cli'], stdout=subprocess.DEVNULL)
+
+    subprocess.run(['aicrowd', 'login'])
+    download_result = subprocess.run(['aicrowd', 'dataset', 'download', '-c', 'food-recognition-benchmark-2022'])
+
+    if download_result.returncode != 0:
+        print("Error in downloading dataset. Please check your AIcrowd credentials and internet connection.")
+        return
+
+    print("Dataset downloaded successfully.")
+
+    for file in glob.glob("*_2.0.tar.gz"):
+        os.remove(file)
+        print(f"Removed file: {file}")
+
+    file_to_dir_map = {
+        "public_training_set_release_2.1.tar.gz": "train",
+        "public_validation_set_release_2.1.tar.gz": "val",
+        "public_test_release_2.1.tar.gz": "test"
+    }
+
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+        print(f"Created directory: {data_dir}")
+    
+    for file, subdir in file_to_dir_map.items():
+        subdir_path = os.path.join(data_dir, subdir)
+        if not os.path.exists(subdir_path):
+            os.makedirs(subdir_path)
+            print(f"Created subdirectory: {subdir_path}")
+
+        if os.path.exists(file):
+            shutil.move(file, subdir_path)
+            file_path = os.path.join(subdir_path, file)
+
+            with tarfile.open(file_path) as tar:
+                tar.extractall(path=subdir_path)
+                print(f"Extracted file: {file} in {subdir_path}")
+
+            os.remove(file_path)
+            print(f"Deleted file: {file}")
+
+if not os.path.exists(args.data_dir) or not all(os.path.exists(os.path.join(args.data_dir, d)) for d in ['train', 'val', 'test']):
+    print(f"Data directory {args.data_dir} not found or incomplete. Downloading data...")
+    setup_data(args.data_dir)
+    
+TRAIN_ANNOTATIONS_PATH = os.path.join(args.data_dir, "train/annotations.json")
+TRAIN_IMAGE_DIRECTORY = os.path.join(args.data_dir, "train/images/")
+
+VAL_ANNOTATIONS_PATH = os.path.join(args.data_dir, "val/annotations.json")
+VAL_IMAGE_DIRECTORY = os.path.join(args.data_dir, "val/images/")
 
 train_coco = COCO(TRAIN_ANNOTATIONS_PATH)
 
 with open(TRAIN_ANNOTATIONS_PATH) as f:
-  train_annotations_data = json.load(f)
+  train_annotations_data = json.load(f) 
 
 with open(VAL_ANNOTATIONS_PATH) as f:
   val_annotations_data = json.load(f)
@@ -92,13 +134,7 @@ for n, i in enumerate(train_coco.getCatIds()):
 img_info = pd.DataFrame(train_coco.loadImgs(train_coco.getImgIds()))
 no_images_per_category = OrderedDict(sorted(no_images_per_category.items(), key=lambda x: -1*x[1]))
 
-from fastai.vision.core import *
-from fastai.vision.utils import *
-from fastai.vision.augment import *
-from fastai.data.core import *
-from fastai.data.transforms import *
-
-images, lbl_bbox = get_annotations('data/train/annotations.json')
+images, lbl_bbox = get_annotations(TRAIN_ANNOTATIONS_PATH)
 
 idx=14
 coco_fn,bbox = 'data/train/images/'+images[idx],lbl_bbox[idx]
@@ -214,28 +250,21 @@ def fix_data(annotations, directiory, VERBOSE = False):
 
   return annotations
 
-train_annotations_data = fix_data(train_annotations_data, TRAIN_IMAGE_DIRECTIORY)
+train_annotations_data = fix_data(train_annotations_data, TRAIN_IMAGE_DIRECTORY)
 
 with open('data/train/new_ann.json', 'w') as f:
     json.dump(train_annotations_data, f)
 
-val_annotations_data = fix_data(val_annotations_data, VAL_IMAGE_DIRECTIORY)
+val_annotations_data = fix_data(val_annotations_data, VAL_IMAGE_DIRECTORY)
 
 with open('data/val/new_ann.json', 'w') as f:
     json.dump(val_annotations_data, f)
 
 
-
-train_annotations_path = 'data/train/new_ann.json'
-train_images_path = 'data/train/images'
-
-val_annotations_path = 'data/val/new_ann.json'
-val_images_path = 'data/val/images'
-
 if "training_dataset" not in DatasetCatalog:
 
-  register_coco_instances("training_dataset", {},train_annotations_path, train_images_path)
-  register_coco_instances("validation_dataset", {},val_annotations_path, VAL_IMAGE_DIRECTIORY)
+  register_coco_instances("training_dataset", {},TRAIN_ANNOTATIONS_PATH, TRAIN_IMAGE_DIRECTORY)
+  register_coco_instances("validation_dataset", {},VAL_ANNOTATIONS_PATH, VAL_IMAGE_DIRECTORY)
 
 
 MODEL_ARCH = "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
@@ -286,9 +315,7 @@ else:
 trainer.train()
 
 
-os.system("cp logs_detectron2_r50/model_final.pth model_final.pth")
-
-cfg.MODEL.WEIGHTS = 'model_final.pth'
+cfg.MODEL.WEIGHTS = 'ogs_detectron2_r50/model_final.pth'
 
 evaluator = COCOEvaluator("validation_dataset", cfg, False, output_dir=cfg.OUTPUT_DIR)
 val_loader = build_detection_test_loader(cfg, "validation_dataset")
@@ -304,44 +331,6 @@ predictor = DefaultPredictor(cfg)
 
 val_metadata = MetadataCatalog.get("val_dataset")
 
-image_id = '183370'
-im = cv2.imread(f"data/val/images/{image_id}.jpg")
-outputs = predictor(im)
-
-im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-
-boxes = outputs["instances"].pred_boxes.tensor.cpu().numpy()
-classes = outputs["instances"].pred_classes.cpu().numpy()
-scores = outputs["instances"].scores.cpu().numpy()
-
-im_pil = Image.fromarray(im)
-
-fig = go.Figure()
-
-fig.add_trace(go.Image(z=im_pil))
-
-for box, cls, score in zip(boxes, classes, scores):
-    y1, x1, y2, x2 = box
-    fig.add_shape(
-        type="rect",
-        x0=x1, y0=y1, x1=x2, y1=y2,
-        line=dict(color="Red"),
-    )
-    fig.add_trace(go.Scatter(
-        x=[x1], y=[y1],
-        text=[f"{cls} ({score:.2f})"],
-        mode="text",
-        textposition="bottom center"
-    ))
-
-fig.update_layout(
-    margin=dict(l=0, r=0, t=0, b=0),
-    width=im.shape[1],
-    height=im.shape[0],
-)
-
-fig.show()
-
 category_ids = sorted(train_coco.getCatIds())
 categories = train_coco.loadCats(category_ids)
 
@@ -350,9 +339,6 @@ class_to_category = { int(class_id): int(category_id) for class_id, category_id 
 with open("class_to_category.json", "w") as fp:
   json.dump(class_to_category, fp)
 
-
-test_images_dir = "data/test/images"
-output_filepath = "predictions_detectron2.json"
 
 model_path = 'model_final.pth'
 
