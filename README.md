@@ -30,7 +30,7 @@ You can run the training script using one of the two methods below.
 
   - If you have a dataset:
       Ensure your dataset is structured as follows before proceeding:
-
+    ````
     data/
     ├── train/
     │   ├── annotations.json
@@ -40,10 +40,11 @@ You can run the training script using one of the two methods below.
     │   └── images/
     └── test/
         └── images/
+    ````
     If your dataset is ready, use the following command to start training:
     `python train.py --data-dir <path/to/your/data>`
     Replace /path/to/your/data with the actual path to your dataset.
-
+    
   - If you need to download the dataset:
     If you do not have a dataset and need to download it, simply run the training script without specifying the --data-dir argument. The script will handle the download and preparation of the dataset:    
 
