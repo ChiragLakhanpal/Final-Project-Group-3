@@ -48,3 +48,13 @@ You can run the training script using one of the two methods below.
   - If you need to download the dataset:
     If you do not have a dataset and need to download it, simply run the training script without specifying the --data-dir argument. The script will handle the download and preparation of the dataset:    
 
+## Stremlit App
+
+To run the Streamlit app, use the following command:
+
+```streamlit run streamlit.py --server.port <port number> --server.fileWatcherType none -- --class_to_category <path/to/the/class_to_category.json> --annotations_json <path/to/the/annotations_json.json>```
+This command starts the Streamlit server. The application automatically downloads the necessary models from Hugging Face and stores them in the Models directory.
+
+Usage
+Navigate to http://localhost:<port number> in your web browser to access the app.
+Follow the on-screen instructions to upload an image and perform food detection.
