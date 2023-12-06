@@ -46,7 +46,27 @@ You can run the training script using one of the two methods below.
     Replace /path/to/your/data with the actual path to your dataset.
     
   - If you need to download the dataset:
-    If you do not have a dataset and need to download it, simply run the training script without specifying the --data-dir argument. The script will handle the download and preparation of the dataset:    
+    If you do not have a dataset and need to download it, simply run the training script without specifying the --data-dir argument. The script will handle the download and preparation of the dataset:
+    
+## Training the Yolov8 model
+
+The Yolo model is built for 2 different tasks.
+* Object Detection
+* Image segmentation
+
+for training
+1. Create a directory '/home/ubuntu/term_project/data/' and place the food.yaml file in the data folder.
+   
+2. For instance segmentation task, Run the Yolov8_instance_segmentation_annotation.py file to update the coco labels to the Yolo Labels
+   
+3. for the Object detection task, run COCO_to_YOLO_annotations.py file
+   
+4. based on the task selected, pass the model for training. Comment on the other models and execute the code just by keeping the required model.
+   
+5. It will generate the runs/segment/train directory, in which, you will get the trained model(it will give the best and the general model)
+  
+6. keep predict.py in the same directory and run the file to see the output.
+
 
 ## Stremlit App
 
