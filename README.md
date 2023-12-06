@@ -16,3 +16,34 @@ Set of 946 (as RGB images) food images, along with their corresponding 1708 anno
 - [Faster R-CNN](https://arxiv.org/pdf/1506.01497.pdf)
 - [Mask R-CNN](https://arxiv.org/abs/1703.06870)
 - [YOLOv8](https://github.com/ultralytics/ultralytics)
+
+
+##Training the Mask R-CNN Model
+
+Follow these steps to train the model using your dataset or to download the dataset automatically.
+
+1. Install the required dependencies:
+`pip install -r requirements.txt`
+
+2. Running the Training Script
+You can run the training script using one of the two methods below.
+
+  - If you have a dataset:
+      Ensure your dataset is structured as follows before proceeding:
+
+    data/
+    ├── train/
+    │   ├── annotations.json
+    │   └── images/
+    ├── val/
+    │   ├── annotations.json
+    │   └── images/
+    └── test/
+        └── images/
+    If your dataset is ready, use the following command to start training:
+    `python train.py --data-dir <path/to/your/data>`
+    Replace /path/to/your/data with the actual path to your dataset.
+
+  - If you need to download the dataset:
+    If you do not have a dataset and need to download it, simply run the training script without specifying the --data-dir argument. The script will handle the download and preparation of the dataset:    
+
