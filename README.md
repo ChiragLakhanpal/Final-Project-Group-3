@@ -18,7 +18,7 @@ Set of 946 (as RGB images) food images, along with their corresponding 1708 anno
 - [YOLOv8](https://github.com/ultralytics/ultralytics)
 
 
-##Training the Mask R-CNN Model
+## Training the Mask R-CNN Model
 
 Follow these steps to train the model using your dataset or to download the dataset automatically.
 
