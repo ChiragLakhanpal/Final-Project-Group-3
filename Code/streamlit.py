@@ -12,9 +12,6 @@ from detectron2.engine import DefaultPredictor
 from detectron2 import model_zoo
 from detectron2.data.datasets import register_coco_instances
 from detectron2.data import DatasetCatalog
-from PIL import Image
-from ultralytics import YOLO
-import torch
 import json
 import re
 import pandas as pd
@@ -25,18 +22,12 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import random
-from .fastercnn_predictor import Predictor
-
-PROJECT_ROOT = "/home/ubuntu/Final-Project/Final-Project-Group-3"
+from PIL import Image
+from ultralytics import YOLO
+from fastercnn_predictor import Predictor
+import torch
 
 cfg = get_cfg()
-
-config_path = model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")
-cfg.merge_from_file(config_path)
-cfg.MODEL.WEIGHTS = 'model_final.pth'
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.1
-cfg.MODEL.ROI_HEADS.NUM_CLASSES = 498
-predictor = DefaultPredictor(cfg)
 
 metadata = MetadataCatalog.get("training_dataset")
 
@@ -126,9 +117,33 @@ def predict_and_visualize(image_path, predictor, metadata,class_to_category, ann
     formatted_names = [format_names(name) for name in class_names]
 
 
-    return formatted_names   
+    return formatted_names    
 
-def yolo_predict(image_path): #class_to_category
+def faster_rcnn_predict(img_path, annotations, categories):
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    checkpoint = torch.load(
+        os.path.join('Models', "Model_Faster_RCNN.pt"), map_location=device
+    )
+    fasterrcnn_predictor = Predictor(categories, annotations)
+    image, names = fasterrcnn_predictor(img_path, checkpoint)
+    
+    st.image(image, caption='Detected Image.', use_column_width=True)
+
+    return [format_names(name) for name in names]
+    
+def save_uploaded_file(uploaded_file):
+    try:
+        temp_dir = tempfile.mkdtemp()  
+        file_path = os.path.join(temp_dir, uploaded_file.name)
+
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        return file_path
+    except Exception as e:
+        st.error(f"Error saving uploaded file: {e}")
+        return None
+
+def yolo_predict(image_path): 
     if not os.path.isfile(image_path):
         print(f"File not found: {image_path}")
         return []
@@ -138,22 +153,15 @@ def yolo_predict(image_path): #class_to_category
         print(f"Could not read the image file {image_path}")
         return []
 
-    # outputs = predictor(img)
-    #
-    # v = Visualizer(img[:, :, ::-1], metadata=metadata, scale=1.0)
-    # out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-    # annotated_img = cv2.cvtColor(out.get_image()[:, :, ::-1], cv2.COLOR_BGR2RGB)
-    #
-    model = YOLO('best.pt')
+
+    model = YOLO('Models/Model_Yolo.pt')
 
     results = model(image_path,show = True,save = True,hide_labels = True, hide_conf = True,conf = 0.1,save_txt = True,save_crop = False,line_thickness = 2)  # results list
 
     # Show the results
     for r in results:
-        im_array = r.plot()  # plot a BGR numpy array of predictions
-        im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
-        #im.show()  # show image
-        #im.save('results.jpg')  # save image
+        im_array = r.plot() 
+        im = Image.fromarray(im_array[..., ::-1])  
 
     st.image(im, caption='Detected Image.', use_column_width=True)
     name_list  =[]
@@ -166,41 +174,7 @@ def yolo_predict(image_path): #class_to_category
             if val not in name_list:
                 name_list.append(val)
 
-    # classes = outputs["instances"].pred_classes.cpu().numpy()
-    #print(name_list)
-    # category_id = list(set(class_to_category.get(str(i)) for i in classes))
-    # class_names = [category["name"] for category_id in category_id for category in annotations["categories"] if
-    #                category["id"] == category_id]
-    # formatted_names = [format_names(name) for name in class_names]
-    #
-    # return formatted_names
     return name_list
-
-def faster_rcnn_predict(img_path, annotations, categories):
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    checkpoint = torch.load(
-        os.path.join(PROJECT_ROOT, "best_fasterrcnn_model.pt"), map_location=device
-    )
-    fasterrcnn_predictor = Predictor(categories, annotations)
-    image, names = fasterrcnn_predictor(img_path, checkpoint)
-    
-    # dispaly annotated image
-    st.image(image, caption='Detected Image.', use_column_width=True)
-
-    # predicted category names
-    return [format_names(name) for name in names]
-
-def save_uploaded_file(uploaded_file):
-    try:
-        temp_dir = tempfile.mkdtemp()  
-        file_path = os.path.join(temp_dir, uploaded_file.name)
-
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        return file_path
-    except Exception as e:
-        st.error(f"Error saving uploaded file: {e}")
-        return None
 
 def main():
     inject_custom_css()
@@ -235,7 +209,7 @@ def main():
         st.write("3. Wait for the app to detect the food items.")
         st.write("4. View the detected items and their estimated calorie content.")
 
-        model_choice = st.sidebar.selectbox("Choose a Detection Model", ["YOLO", "Detectron", "Custom"])
+        model_choice = st.sidebar.selectbox("Choose a Detection Model", ["YOLO", "Mask R-CNN", "Faster R-CNN"])
 
         uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
@@ -246,9 +220,15 @@ def main():
             if image_path:
                 if model_choice == "YOLO":
                     detected_items = yolo_predict(image_path)
-                elif model_choice == "Detectron":
+                elif model_choice == "Mask R-CNN":
+                    config_path = model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
+                    cfg.merge_from_file(config_path)
+                    cfg.MODEL.WEIGHTS = 'Models/Model_Mask_RCNN.pth'
+                    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.1
+                    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 498
+                    predictor = DefaultPredictor(cfg)                    
                     detected_items = predict_and_visualize(image_path, predictor, metadata, class_to_category, annotations)
-                elif model_choice == "Custom":
+                elif model_choice == "Faster R-CNN":
                     detected_items = faster_rcnn_predict(image_path, annotations, class_to_category)
 
                 st.write("## Detected Items")
