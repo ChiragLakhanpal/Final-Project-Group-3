@@ -56,7 +56,7 @@ results = model.train(
 
 ##########m is training better
 ##with yolov8m
-model = YOLO('yolov8n.pt')
+model = YOLO('yolov8m-seg.pt')
 
 
 # Training.
@@ -67,7 +67,7 @@ results = model.train(
    batch=40,
    save=True,
    pretrained = True,
-   name='yolov8n_custom',
+   name='yolov8m_segmentation',
    plots = True,
    device = 0,
    workers = 8
