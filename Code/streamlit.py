@@ -29,33 +29,33 @@ import torch
 import os
 import requests
 import argparse
-def download_model(url, save_path):
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(save_path, 'wb') as f:
-            f.write(response.content)
-        print(f"Model downloaded and saved to {save_path}")
-    else:
-        print(f"Failed to download the model. Status code: {response.status_code}")
+
+from huggingface_hub import hf_hub_download
+import joblib
+
+REPO_ID = "chiraglakhanpal/Food_Detection_Models"
 
 models = [
     {
-        "url": "https://huggingface.co/chiraglakhanpal/Food_Detection_Models/blob/main/Model_Yolo.pt",
+        "filename": "Model_Yolo.pt",
         "save_path": "Models/Model_Yolo.pt"
     },
     {
-        "url": "https://huggingface.co/chiraglakhanpal/Food_Detection_Models/blob/main/Model_Mask_RCNN.pth",
+        "filename": "Model_Mask_RCNN.pth",
         "save_path": "Models/Model_Mask_RCNN.pth"
     },
     {
-        "url": "https://huggingface.co/chiraglakhanpal/Food_Detection_Models/blob/main/Model_Faster_RCNN.pt",
+        "filename": "Model_Faster_RCNN.pt",
         "save_path": "Models/Model_Faster_RCNN.pt"
     }
 ]
 
 for model in models:
-    download_model(model["url"], model["save_path"])
+    os.makedirs(os.path.dirname(model["save_path"]), exist_ok=True)
+
+    model_path = hf_hub_download(repo_id=REPO_ID, filename=model["filename"])
+    with open(model["save_path"], 'wb') as f:
+        f.write(open(model_path, 'rb').read())
 
 cfg = get_cfg()
 
