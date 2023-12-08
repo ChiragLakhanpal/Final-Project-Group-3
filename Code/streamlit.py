@@ -24,7 +24,7 @@ from plotly.subplots import make_subplots
 import random
 from PIL import Image
 from ultralytics import YOLO
-from fastercnn_predictor import Predictor
+from Code.Tejas.fasterRCNN.predictor import Predictor
 import torch
 import os
 import requests
