@@ -66,14 +66,14 @@ class ModelInference:
             labels = prediction["labels"].cpu().numpy()
 
             for box, score, label in zip(boxes, scores, labels):
-                # if score >= THRESHOLD:
-                category_id = self.categories_map.get(str(label))
-                coco_predictions.append({
-                    "image_id": image_id,
-                    "category_id": category_id,
-                    "bbox": [float(coord) for coord in box],
-                    "score": float(score),
-                })
+                if score >= THRESHOLD:
+                    category_id = self.categories_map.get(str(label))
+                    coco_predictions.append({
+                        "image_id": image_id,
+                        "category_id": category_id,
+                        "bbox": [float(coord) for coord in box],
+                        "score": float(score),
+                    })
         
         return coco_predictions
     

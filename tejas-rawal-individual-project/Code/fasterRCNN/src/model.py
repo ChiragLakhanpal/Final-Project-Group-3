@@ -17,7 +17,7 @@ class Phase(Enum):
 
 class Pretrained(Enum):
     MOBILE_NET = "fasterrcnn_mobilenet_v3_large_fpn"
-    RESNET = "maskrcnn_resnet50_fpn_v2"
+    RESNET = "fasterrcnn_resnet50_fpn_v2"
 
 
 def get_model_object_detection(phase: Phase=Phase.TEST, pretrained: Pretrained=Pretrained.MOBILE_NET):
