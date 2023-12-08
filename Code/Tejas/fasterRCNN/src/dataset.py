@@ -3,12 +3,10 @@ import os
 from .config import CHANNELS, IMAGE_SIZE
 
 import cv2
-from matplotlib.path import Path
 import numpy as np
 from pycocotools.coco import COCO
 import torch
 from torch.utils import data
-from torchvision.transforms.v2 import functional as F
 
 
 class CustomCocoDataset(data.Dataset):
@@ -70,34 +68,13 @@ class CustomCocoDataset(data.Dataset):
         annotations_target = {
             "image_id": torch.as_tensor(image_id, dtype=torch.int64),
             "labels": torch.as_tensor(labels, dtype=torch.int64),
-            # "boxes": tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=F.get_size(image)),
             "boxes": torch.as_tensor(boxes, dtype=torch.float32),
-            # "masks": tv_tensors.Mask(annotations_data["masks"]),
             "iscrowd": torch.as_tensor(is_crowd, dtype=torch.int64)
         }
         
         image = torch.reshape(image, (CHANNELS, IMAGE_SIZE, IMAGE_SIZE))
 
         return image, annotations_target
-
-    def polygon_to_mask(polygon_vertices, image_shape):
-        # Create a blank mask
-        mask = np.zeros(image_shape, dtype=np.uint8)
-
-        # Create a Path object from the polygon vertices
-        path = Path(polygon_vertices)
-
-        # Create a grid of coordinates covering the entire image
-        x, y = np.meshgrid(np.arange(image_shape[1]), np.arange(image_shape[0]))
-        points = np.vstack((x.flatten(), y.flatten())).T
-
-        # Check if each point is inside the polygon
-        mask_values = path.contains_points(points).reshape(image_shape)
-
-        # Set the pixels inside the polygon to 1
-        mask[mask_values] = 1
-
-        return mask
     
     def build_bbox(self, bbox):
         [xmin, ymin, width, height] = bbox
@@ -105,9 +82,9 @@ class CustomCocoDataset(data.Dataset):
         ymax = ymin + height
 
         # resize the bounding boxes according to image size
-        xmin = (xmin/IMAGE_SIZE) * IMAGE_SIZE
-        xmax = (xmax/IMAGE_SIZE) * IMAGE_SIZE
-        ymin = (ymin/IMAGE_SIZE) * IMAGE_SIZE
-        ymax = (ymax/IMAGE_SIZE) * IMAGE_SIZE
+        xmin = (xmin/IMAGE_SIZE)
+        xmax = (xmax/IMAGE_SIZE)
+        ymin = (ymin/IMAGE_SIZE)
+        ymax = (ymax/IMAGE_SIZE)
 
         return [xmin, ymin, xmax, ymax]

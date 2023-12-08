@@ -5,11 +5,7 @@ from .config import *
 import torch
 import torch.nn as nn
 import torchvision
-from torchvision.models.detection import (
-    FasterRCNN,
-    FasterRCNN_MobileNet_V3_Large_FPN_Weights,
-    fasterrcnn_mobilenet_v3_large_fpn
-)
+from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
@@ -19,30 +15,43 @@ class Phase(Enum):
     TRAIN = "train"
     TEST = "test"
 
+class Pretrained(Enum):
+    MOBILE_NET = "fasterrcnn_mobilenet_v3_large_fpn"
+    RESNET = "maskrcnn_resnet50_fpn_v2"
 
-def get_model_object_detection(phase: Phase=Phase.TEST):
+
+def get_model_object_detection(phase: Phase=Phase.TEST, pretrained: Pretrained=Pretrained.MOBILE_NET):
     # load a model pre-trained on COCO
-    model = fasterrcnn_mobilenet_v3_large_fpn(
-        weights=FasterRCNN_MobileNet_V3_Large_FPN_Weights.COCO_V1
-    )
+    try:
+        model = torchvision.models.get_model(pretrained.value, weights="DEFAULT")
+        # replace the classifier with a new one, that has get number of input features for the classifier
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+        # replace the pre-trained head with a new one
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, NUM_CLASSES)
         
-    if phase == Phase.TRAIN:
-        # unfreeze last 50% of layers for training
-        max_index_param = len(list(model.parameters())) - 1
-        unfreeze_from = int(0.5 * max_index_param) - 1
-        for i, param in enumerate(model.parameters()):
-            if i >= unfreeze_from and i < max_index_param: 
+        if phase == Phase.TRAIN:
+            # freeze all parameters of the model
+            for param in model.parameters():
+                param.requires_grad = False
+            
+            # make ROI head layer trainable
+            for param in model.roi_heads.parameters():
                 param.requires_grad = True
+            
+            # unfreeze last 50% of parameters for training
+            max_index_param = len(list(model.parameters())) - 1
+            unfreeze_from = int(0.5 * max_index_param) - 1
+            for i, param in enumerate(model.parameters()):
+                if i >= unfreeze_from and i < max_index_param: 
+                    param.requires_grad = True
 
-    # replace the classifier with a new one, that has get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, NUM_CLASSES)
+        model = model.to(DEVICE)
+        save_model_summary(model, pretrained.value)
 
-    model = model.to(DEVICE)
-    save_model_summary(model, "custom-fasterrcnn-mobilenetv3")
+        return model
+    except Exception:
+        raise (f"Unable to load model {pretrained.value}")
 
-    return model
 
 def get_model_instance_segmentation():
     # load mobilenetv2 pre-trained model for classification

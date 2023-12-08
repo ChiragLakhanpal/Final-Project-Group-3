@@ -1,74 +1,52 @@
 from .config import *
-from .dataset import CustomCocoDataset
-from .model import get_model_object_detection
-from .utils import collate_fn
+from .model import Phase, get_model_object_detection
+from .test import get_test_dataset
 
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 import torch
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.transforms import v2
-from torch.utils import data
-
-def get_test_dataset(batch_size=100):
-    # image transforms
-    test_transforms = v2.Compose([
-        v2.ToImage(),
-        v2.Resize((IMAGE_SIZE, IMAGE_SIZE), antialias=True),
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    test_params = {
-        "batch_size": batch_size,
-        "shuffle": False,
-        "collate_fn": collate_fn,
-    }
-
-    test_dataset = CustomCocoDataset(TEST_ANNOTATIONS_PATH, TEST_IMAGES_DIR, transforms=test_transforms)
-    test_generator = data.DataLoader(test_dataset, **test_params)
-
-    return test_generator
+from tqdm import tqdm
 
 
 class ModelInference:
-    def __init__(self, categories_map, iouType="bbox"):    
-        self.iou_type = iouType
+    def __init__(self, model_name, categories_map, iouType="bbox"):    
+        self.model_name = model_name
         self.categories_map = categories_map
+        self.iou_type = iouType
 
     def run(self):
-        image_ids = []
-        model = get_model_object_detection()
+        results = []
+        model = get_model_object_detection(phase=Phase.TEST, pretrained=self.model_name)
         test_data_loader = get_test_dataset(BATCH_SIZE)
-        coco_gt = COCO(TEST_ANNOTATIONS_PATH)
-        coco_eval = COCOeval(coco_gt, iouType=self.iou_type)
         
         # load checkpoint
-        checkpoint = torch.load(os.path.join(OUTPUT_DIR, "best_fasterrcnn_model.pt"), map_location=DEVICE)
+        checkpoint = torch.load(os.path.join(OUTPUT_DIR, f"best_{self.model_name.value}.pt"), map_location=DEVICE)
+
         model.load_state_dict(checkpoint)
         
         # put model into evaluation mode
         model.eval()
 
-        for images, targets in test_data_loader:
-            with torch.no_grad():
-                images = [image.to(DEVICE) for image in images]
+        with tqdm(total=len(test_data_loader), desc=f"Inference") as pbar:
+            for idx, (images, targets) in enumerate(test_data_loader):
+                pbar.set_description(f"Inferencing batch {idx + 1}")
+                # disable gradient calc
+                with torch.no_grad():
+                    images = [image.to(DEVICE) for image in images]
 
-                # model produces predictions
-                predictions = model(images)
-                
-                # detach and convert predictions to COCO format
-                results = self.prepare_coco_results(predictions, targets)
+                    # model produces predictions
+                    predictions = model(images)
+                    
+                    # convert predictions to COCO format and save
+                    results.extend(self.prepare_coco_results(predictions, targets))
 
-                image_ids.extend([result["image_id"] for result in results]) # extend with image ids
-
-                # update COCOeval with current batch
-                coco_dt = COCO.loadRes(coco_gt, results) if results else COCO()
-                coco_eval.cocoDt = coco_dt
-                coco_eval.params.imgIds = image_ids
-                coco_eval.evaluate()
+                    pbar.update(1)
 
         # Summarize and print results
+        coco_gt = COCO(TRAIN_ANNOTATIONS_PATH)
+        coco_dt = COCO.loadRes(coco_gt, results)
+        coco_eval = COCOeval(coco_gt, coco_dt, iouType=self.iou_type)
+        coco_eval.evaluate()
         coco_eval.accumulate()
         coco_eval.summarize()
 
