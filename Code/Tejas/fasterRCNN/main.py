@@ -90,11 +90,12 @@ class ModelTrainer:
             save_loss_plot(train_loss_list, test_loss_list, self.model_name.value)
 
 
-# call model and return results
-model_name = Pretrained.MOBILE_NET
-# model_name = Pretrained.RESNET
-runner = ModelTrainer(model_name, batch_size=BATCH_SIZE)
-results = runner.train_and_test()
-categories_map = get_categories_map(Phase.TRAIN)
-inference = ModelInference(model_name, categories_map)
-evaluator = inference.run()
+if __name__ == "__main__":
+    # call model and return results
+    model_name = Pretrained.MOBILE_NET
+    # model_name = Pretrained.RESNET
+    runner = ModelTrainer(model_name, batch_size=BATCH_SIZE)
+    results = runner.train_and_test()
+    categories_map = get_categories_map(Phase.TRAIN)
+    inference = ModelInference(model_name, categories_map)
+    evaluator = inference.run()
