@@ -1,9 +1,11 @@
 
 
+import argparse
 import os
 import random
 
 import cv2
+from huggingface_hub import hf_hub_download
 import numpy as np
 from pycocotools.coco import COCO
 import torch
@@ -17,6 +19,12 @@ ROOT_DIR = "/home/ubuntu/Final-Project/Final-Project-Group-3"
 OUTPUT_DIR = os.path.join(ROOT_DIR, "Code/tejas-faster-rcnn/output")
 TRAIN_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/train/annotations.json")
 
+# HuggingFace info
+REPO_ID = "chiraglakhanpal/Food_Detection_Models"
+MODEL_FILENAME = "Model_Faster_RCNN.pt"
+ANNOTATIONS_FILENAME = "annotations_v21.json"
+
+
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 THRESHOLD = 0.5
 IMAGE_SIZE = 256
@@ -28,14 +36,10 @@ np.random.seed(SEED)
 random.seed(SEED)
 
 def get_annotations():
-    coco_annotations = COCO(TRAIN_ANNOTATIONS_PATH)
-    category_ids = sorted(coco_annotations.getCatIds())
-    categories_map = {
-        int(class_id): int(category_id) for class_id, category_id in enumerate(category_ids)
-    }
+    path = hf_hub_download(repo_id=REPO_ID, filename=ANNOTATIONS_FILENAME)
+    coco_annotations = COCO(path)
 
-    
-    return coco_annotations, categories_map
+    return coco_annotations
 
 def get_model_object_detection(num_classes: int):
     # load a model pre-trained on COCO
@@ -99,6 +103,7 @@ class Predictor:
         category_names = []
 
         for i in range(0, len(prediction["boxes"])):
+            # filter out predictions based on threshold
             if prediction["scores"][i] >= THRESHOLD:
                 label = int(prediction["labels"][i])
                 category_id = self.categories_map.get(label)
@@ -127,19 +132,28 @@ class Predictor:
         return image, category_names
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    # Path to image to annotate
+    parser.add_argument(
+        "--image_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to the image you want to annotate"
+    )
+    args = parser.parse_args()
 
-# device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-# checkpoint = torch.load(
-#     os.path.join(ROOT_DIR, "Code", "best_fasterrcnn_resnet_model.pt"), map_location=device
-# )
-# annotations, categories = get_annotations()
-# fasterrcnn_predictor = Predictor(categories, annotations)
+    model_path = hf_hub_download(repo_id=REPO_ID, filename=MODEL_FILENAME)
+    checkpoint = torch.load(model_path, map_location=DEVICE)
+    annotations = get_annotations()
+    category_ids = sorted(annotations.getCatIds())
+    categories_map = {
+        int(class_id): int(category_id) for class_id, category_id in enumerate(category_ids)
+    }
 
-# image_paths = [
-#     f"{ROOT_DIR}/Code/apples.jpeg"
-# ]
-
-# for pth in image_paths:
-#     image, names = fasterrcnn_predictor(pth, checkpoint)
-#     # dispaly annotated image
-#     print(names)
+    fasterrcnn_predictor = Predictor(categories_map, annotations)
+    image, names = fasterrcnn_predictor(args.image_path, checkpoint)
+    breakpoint()
+    cv2.imshow(image)
+    print(f"Predicted labels: {', '.join(names)}")
