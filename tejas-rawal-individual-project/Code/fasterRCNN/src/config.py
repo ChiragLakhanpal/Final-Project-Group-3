@@ -7,7 +7,7 @@ import torch
 
 # Data and directory paths
 ROOT_DIR = "/home/ubuntu/Final-Project/Final-Project-Group-3"
-CODE_DIR = os.path.join(ROOT_DIR, "Code", "Tejas")
+CODE_DIR = os.path.join(ROOT_DIR, "tejas-rawal-individual-project", "Code")
 OUTPUT_DIR = os.path.join(CODE_DIR, "fasterRCNN", "output")
 TRAIN_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/train/images")
 TRAIN_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/train/annotations.json")
