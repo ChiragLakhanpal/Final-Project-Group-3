@@ -3,13 +3,12 @@ import json
 
 from src.config import *
 from src.inference import ModelInference
-from src.model import Phase, get_model_object_detection, set_optimizer, set_scheduler
+from src.model import Phase, Pretrained, get_model_object_detection, set_optimizer, set_scheduler
 from src.train import get_train_dataset, train_epoch
 from src.test import get_test_dataset, test_epoch
 from src.utils import Averager, SaveBestModel, save_loss_plot
 
 from pycocotools.coco import COCO
-# from torchvision.models.detection.roi_heads import maskrcnn_loss
 
 @cache
 def get_raw_annotations(phase):
@@ -41,9 +40,9 @@ def get_categories_map(phase: Phase):
     return categories_map
 
 class ModelTrainer:
-    def __init__(self, batch_size: int=100) -> None:
+    def __init__(self, model_name: Pretrained, batch_size: int=100) -> None:
         self.batch_size = batch_size
-        # self.model = build_model()
+        self.model_name = model_name
    
     def train_and_test(self):
         # record loss history
@@ -55,15 +54,15 @@ class ModelTrainer:
         test_loss_hist = Averager()
 
         # initialize SaveBestModel
-        save_best_model = SaveBestModel()
+        save_best_model = SaveBestModel(self.model_name.value)
 
         train_ds = get_train_dataset(self.batch_size)
         test_ds = get_test_dataset(self.batch_size)
 
-        model = get_model_object_detection(phase=Phase.TRAIN)
+        model = get_model_object_detection(phase=Phase.TRAIN, pretrained=self.model_name)
+        # model = get_model_object_detection(phase=Phase.TRAIN, pretrained=Pretrained.RESNET)
         optimizer = set_optimizer(model)
         scheduler = set_scheduler(optimizer)
-        # self.loss_func = maskrcnn_loss
 
         for epoch in range(1, EPOCHS + 1):
             # reset the training and validation loss histories for the current epoch
@@ -88,12 +87,15 @@ class ModelTrainer:
                 test_loss_hist.value, epoch, model
             )
             # save loss plot
-            save_loss_plot(train_loss_list, test_loss_list)
+            save_loss_plot(train_loss_list, test_loss_list, self.model_name.value)
 
 
-# call model and return results
-# runner = ModelTrainer(batch_size=BATCH_SIZE)
-# results = runner.train_and_test()
-categories_map = get_categories_map(Phase.TRAIN)
-inference = ModelInference(categories_map)
-evaluator = inference.run()
+if __name__ == "__main__":
+    # call model and return results
+    model_name = Pretrained.MOBILE_NET
+    # model_name = Pretrained.RESNET
+    runner = ModelTrainer(model_name, batch_size=BATCH_SIZE)
+    results = runner.train_and_test()
+    categories_map = get_categories_map(Phase.TRAIN)
+    inference = ModelInference(model_name, categories_map)
+    evaluator = inference.run()

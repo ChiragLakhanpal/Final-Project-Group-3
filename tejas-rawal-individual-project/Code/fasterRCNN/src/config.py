@@ -7,7 +7,8 @@ import torch
 
 # Data and directory paths
 ROOT_DIR = "/home/ubuntu/Final-Project/Final-Project-Group-3"
-OUTPUT_DIR = os.path.join(ROOT_DIR, "Code/tejas-faster-rcnn/output")
+CODE_DIR = os.path.join(ROOT_DIR, "tejas-rawal-individual-project", "Code")
+OUTPUT_DIR = os.path.join(CODE_DIR, "fasterRCNN", "output")
 TRAIN_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/train/images")
 TRAIN_ANNOTATIONS_PATH = os.path.join(ROOT_DIR, "Data/train/annotations.json")
 TEST_IMAGES_DIR = os.path.join(ROOT_DIR, "Data/test/images")
@@ -39,8 +40,8 @@ EPOCHS = 20
 # cuda config
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 NUM_WORKERS = 4
-# torch.backends.cudnn.deterministic = True
-# torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 # seeding
 SEED = 1122

@@ -34,7 +34,8 @@ class SaveBestModel:
     validation loss is less than the previous least less, then save the
     model state.
     """
-    def __init__(self, best_valid_loss=float('inf')):
+    def __init__(self, model_name, best_valid_loss=float('inf')):
+        self.model_name = model_name
         self.best_valid_loss = best_valid_loss
         
     def __call__(
@@ -45,8 +46,7 @@ class SaveBestModel:
             print(f"\nBest test loss: {self.best_valid_loss}")
             print(f"\nSaving best model for epoch: {epoch}\n")
 
-            torch.save(model.state_dict(), f"{OUTPUT_DIR}/best_fasterrcnn_model.pt")
-            # torch.save(model.state_dict(), f"{OUTPUT_DIR}/best_fasterrcnn_resnet_model.pt")
+            torch.save(model.state_dict(), f"{OUTPUT_DIR}/best_{self.model_name}.pt")
 
 
 def collate_fn(batch):
@@ -56,7 +56,7 @@ def collate_fn(batch):
     """
     return tuple(zip(*batch))
 
-def save_loss_plot(train_loss, val_loss):
+def save_loss_plot(train_loss, val_loss, model_name):
     figure_1, train_ax = plt.subplots()
     figure_2, valid_ax = plt.subplots()
     train_ax.plot(train_loss, color='tab:blue')
@@ -65,7 +65,7 @@ def save_loss_plot(train_loss, val_loss):
     valid_ax.plot(val_loss, color='tab:red')
     valid_ax.set_xlabel('iterations')
     valid_ax.set_ylabel('validation loss')
-    figure_1.savefig(f"{OUTPUT_DIR}/train_loss.png")
-    figure_2.savefig(f"{OUTPUT_DIR}/valid_loss.png")
+    figure_1.savefig(f"{OUTPUT_DIR}/{model_name}_train_loss.png")
+    figure_2.savefig(f"{OUTPUT_DIR}/{model_name}_test_loss.png")
     print('SAVING PLOTS COMPLETE...')
     plt.close('all')
