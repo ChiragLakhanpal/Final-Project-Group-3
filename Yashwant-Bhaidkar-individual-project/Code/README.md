@@ -1,4 +1,4 @@
-##Steps to train the YOLOv8 model
+## Steps to train the YOLOv8 model
 
 1)create a file structure as per below screenshot
 
