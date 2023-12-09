@@ -17,4 +17,4 @@
 
 6)Keep the predict.py in the same directory and pass the image path in predict funtion.
 
-7) Execute python3 predict.py to get the final results(image 'predict.jpg' will get saved with the detected object output)
+7)Execute python3 predict.py to get the final results(image 'predict.jpg' will get saved with the detected object output)
