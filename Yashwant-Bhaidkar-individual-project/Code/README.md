@@ -1,11 +1,11 @@
-Steps to train the YOLOv8 model
+##Steps to train the YOLOv8 model
 
 1)create a file structure as per below screenshot
 
-# !mkdir -p data/ data/train data/val data/test
-# !cp test data/test && cd data/test && echo "Extracting test dataset" && tar -xvf test > /dev/null
-# !cp val data/val && cd data/val && echo "Extracting val dataset" &&  tar -xvf val > /dev/null
-# !cp train data/train && cd data/train && echo "Extracting train dataset" &&  tar -xvf train > /dev/null
+ !mkdir -p data/ data/train data/val data/test
+ !cp test data/test && cd data/test && echo "Extracting test dataset" && tar -xvf test > /dev/null
+ !cp val data/val && cd data/val && echo "Extracting val dataset" &&  tar -xvf val > /dev/null
+ !cp train data/train && cd data/train && echo "Extracting train dataset" &&  tar -xvf train > /dev/null
 
 2)Execute the coco-to-YOLO annotations code to convert the labels into YOLO compatible format
 
