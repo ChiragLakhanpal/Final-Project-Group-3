@@ -1,10 +1,10 @@
-# Deep-Learning-Final-Project
+# Wellness Wingman
 
 ## Introduction
 Recognizing food from images is an extremely useful tool for a variety of use cases. In particular, it would allow people to track their food intake by simply taking a picture of what they consume. Food tracking can be of personal interest, and can often be of medical relevance as well. Medical studies have for some time been interested in the food intake of study participants but had to rely on food frequency questionnaires that are known to be imprecise.
 
 ## Problem Statement
-The goal of this challenge is to train models which can look at images of food items and detect the individual food items present in them. 
+The goal of this challenge is to train models that can look at images of food items and detect the individual food items present in them. 
 
 ## Dataset
 ### Training
